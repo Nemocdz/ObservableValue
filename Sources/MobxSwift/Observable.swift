@@ -10,15 +10,13 @@ import Foundation
 @propertyWrapper
 public final class Observeable<Value> {
     private var observers: Set<Observer<Value>> = []
-    private var uniqueId = (0...).makeIterator()
+    private var uniqueID = (0...).makeIterator()
     private var lock = NSRecursiveLock()
     
-    private var value: Value {
+    public private(set) var value: Value {
         didSet {
-            lock.lock()
-            defer { lock.unlock() }
             let newValue = value
-            observers = observers.filter{ $0.handler(oldValue, newValue) }
+            observers = observers.filter{ $0.notifyHandler(oldValue, newValue) }
         }
     }
     
@@ -39,12 +37,12 @@ public final class Observeable<Value> {
             return value
         }
         set {
-            value = newValue
+            update(newValue)
         }
     }
     
     @discardableResult
-    public func addObserver<Object>(for object: Object, at queue: DispatchQueue? = nil, handler: @escaping(Object, Value?, Value) -> ()) -> Observer<Value> where Object: AnyObject {
+    public func addObserver<Object>(for object: Object, at queue: DispatchQueue? = nil, handler: @escaping(Object, Value?, Value) -> ()) -> AnyObserver where Object: AnyObject {
         lock.lock()
         defer { lock.unlock() }
         
@@ -60,7 +58,7 @@ public final class Observeable<Value> {
         
         handle(object: object, newValue: value)
         
-        let observer = Observer<Value>(id: uniqueId.next()!) { [weak object] oldValue, newValue in
+        let observer = Observer<Value>(id: uniqueID.next()!) { [weak object] oldValue, newValue in
             guard let object = object else {
                 return false
             }
@@ -70,53 +68,44 @@ public final class Observeable<Value> {
         }
         
         observers.insert(observer)
-        return observer
+        
+        return AnyObserver {
+            self.remove(observer)
+        }
+    }
+    
+    public func update(_ newValue: Value) {
+        lock.lock()
+        defer { lock.unlock() }
+        value = newValue
     }
     
     @discardableResult
-    public func remove(_ observer: Observer<Value>) -> Bool {
-        observers.remove(observer) != nil
+    private func remove(_ observer: Observer<Value>) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return observers.remove(observer) != nil
     }
 }
 
 extension Observeable {
-    public final class Binding {
-        let handler: () -> ()
-        
-        init(_ handler: @escaping () -> ()) {
-            self.handler = handler
-        }
-    
-        deinit {
-            handler()
-        }
-        
-        public func unbind() {
-            handler()
-        }
-    }
-    
     /// key
     @discardableResult
-    public func bind<Receiver, ReceiverValue>(to receiver: Receiver, _ receiverKeyPath: ReferenceWritableKeyPath<Receiver, ReceiverValue>, at queue: DispatchQueue? = nil, transform: @escaping (Value) -> ReceiverValue) -> Binding where Receiver: AnyObject{
-        let observer = addObserver(for: receiver, at: queue) { receiver, oldValue, newValue in
+    public func bind<Receiver, ReceiverValue>(to receiver: Receiver, _ receiverKeyPath: ReferenceWritableKeyPath<Receiver, ReceiverValue>, at queue: DispatchQueue? = nil, transform: @escaping (Value) -> ReceiverValue) -> AnyObserver where Receiver: AnyObject{
+        return addObserver(for: receiver, at: queue) { receiver, oldValue, newValue in
             receiver[keyPath: receiverKeyPath] = transform(newValue)
-        }
-        
-        return Binding {
-            self.remove(observer)
         }
     }
     
     /// convience
     @discardableResult
-    public func bind<Receiver>(to receiver: Receiver, _ receiverKeyPath: ReferenceWritableKeyPath<Receiver, Value>, at queue: DispatchQueue? = nil) -> Binding where Receiver: AnyObject{
+    public func bind<Receiver>(to receiver: Receiver, _ receiverKeyPath: ReferenceWritableKeyPath<Receiver, Value>, at queue: DispatchQueue? = nil) -> AnyObserver where Receiver: AnyObject{
         let transform: (Value) -> Value = { $0 }
         return bind(to: receiver, receiverKeyPath, transform: transform)
     }
     
     @discardableResult
-    public func bind<Receiver>(to receiver: Receiver, _ receiverKeyPath: ReferenceWritableKeyPath<Receiver, Value?>, at queue: DispatchQueue? = nil) -> Binding where Receiver: AnyObject {
+    public func bind<Receiver>(to receiver: Receiver, _ receiverKeyPath: ReferenceWritableKeyPath<Receiver, Value?>, at queue: DispatchQueue? = nil) -> AnyObserver where Receiver: AnyObject {
         let transform: (Value) -> Value? = { $0 as Value? }
         return bind(to: receiver, receiverKeyPath, transform: transform)
     }

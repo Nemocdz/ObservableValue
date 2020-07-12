@@ -7,22 +7,36 @@
 
 import Foundation
 
-public final class Observer<Value> {
-    let handler: (Value, Value) -> Bool
-    private let id: Int
+public final class AnyObserver {
+    private let handler: () -> ()
     
-    init(id: Int, _ handler: @escaping (Value, Value) -> Bool) {
-        self.id = id
+    init(_ handler: @escaping () -> ()) {
         self.handler = handler
+    }
+    
+    public func remove() {
+        handler()
+    }
+}
+
+final class Observer<Value> {
+    typealias NotifyHandler = (Value, Value) -> Bool
+    
+    private let id: Int
+    let notifyHandler: NotifyHandler
+    
+    init(id: Int, notifyHandler: @escaping NotifyHandler) {
+        self.id = id
+        self.notifyHandler = notifyHandler
     }
 }
 
 extension Observer: Hashable {
-    public static func == (lhs: Observer<Value>, rhs: Observer<Value>) -> Bool {
+    static func == (lhs: Observer<Value>, rhs: Observer<Value>) -> Bool {
         return lhs.id == rhs.id
     }
     
-    public func hash(into hasher: inout Hasher) {
+    func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
 }
