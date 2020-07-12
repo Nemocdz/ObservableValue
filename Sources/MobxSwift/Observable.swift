@@ -12,7 +12,7 @@ import Combine
 public final class Observeable<Value> {
     private var observers: Set<Observer<Value>> = []
     private var uniqueID = (0...).makeIterator()
-    private var lock = NSRecursiveLock()
+    private let lock = NSRecursiveLock()
     
     public private(set) var value: Value {
         didSet {
@@ -60,10 +60,7 @@ public final class Observeable<Value> {
         handle(object: object, newValue: value)
         
         let observer = Observer<Value>(id: uniqueID.next()!) { [weak object] oldValue, newValue in
-            guard let object = object else {
-                return false
-            }
-            
+            guard let object = object else { return false }
             handle(object: object, oldValue: oldValue, newValue: newValue)
             return true
         }
@@ -78,6 +75,7 @@ public final class Observeable<Value> {
     public func update(_ newValue: Value) {
         lock.lock()
         defer { lock.unlock() }
+        
         value = newValue
     }
     
@@ -85,12 +83,12 @@ public final class Observeable<Value> {
     private func remove(_ observer: Observer<Value>) -> Bool {
         lock.lock()
         defer { lock.unlock() }
+        
         return observers.remove(observer) != nil
     }
 }
 
 extension Observeable {
-    /// key
     @discardableResult
     public func bind<R, V>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, V>, at queue: DispatchQueue? = nil, transform: @escaping (Value) -> V) -> AnyObserver where R: AnyObject {
         return addObserver(for: receiver, at: queue) { receiver, oldValue, newValue in
@@ -98,7 +96,6 @@ extension Observeable {
         }
     }
     
-    /// convience
     @discardableResult
     public func bind<R>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, Value>, at queue: DispatchQueue? = nil) -> AnyObserver where R: AnyObject {
         let transform: (Value) -> Value = { $0 }
