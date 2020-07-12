@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Combine
 
 @propertyWrapper
 public final class Observeable<Value> {
