@@ -14,9 +14,8 @@ final class MobxSwiftTests: XCTestCase {
         XCTAssert(object.success)
     }
     
-    func testObservaeRetain() {
-        let exp = expectation(description: "retain_cycle")
-        
+    func testObservableRetain() {
+        let exp = expectation(description: "retain_cycle_1")
         var object: RetainCycle? = RetainCycle {
             exp.fulfill()
         }
@@ -28,10 +27,24 @@ final class MobxSwiftTests: XCTestCase {
         object = nil
         wait(for: [exp], timeout: 1.0)
     }
+    
+    func testObserverRemove() {
+        var success: Observeable<Bool>? = Observeable<Bool>(false)
+        let object = ObserverObject()
+        let observer = success!.addObserver(for: object) { object, oldValue, newValue in
+        }
+        XCTAssert(observer.remove())
+        XCTAssert(!observer.remove())
+        let observer2 = success!.addObserver(for: object) { object, oldValue, newValue in
+        }
+        success = nil
+        XCTAssert(!observer2.remove())
+    }
 
     static var allTests = [
         ("test1", testObservableValueChanged),
-        ("test2", testObservaeRetain),
+        ("test2", testObservableRetain),
+        ("test3", testObserverRemove),
     ]
 }
 

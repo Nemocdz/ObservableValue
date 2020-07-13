@@ -8,14 +8,16 @@
 import Foundation
 
 public final class AnyObserver {
-    private let handler: () -> ()
+    typealias RemoveHandler = () -> Bool
     
-    init(_ handler: @escaping () -> ()) {
-        self.handler = handler
+    private let removeHandler: RemoveHandler
+    
+    init(removeHandler: @escaping RemoveHandler) {
+        self.removeHandler = removeHandler
     }
     
-    public func remove() {
-        handler()
+    public func remove() -> Bool {
+        return removeHandler()
     }
 }
 

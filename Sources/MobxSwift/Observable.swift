@@ -66,8 +66,10 @@ public final class Observeable<Value> {
         
         observers.insert(observer)
         
-        return AnyObserver {
+        return AnyObserver { [weak self, weak observer] in
+            guard let self = self, let observer = observer else { return false }
             self.remove(observer)
+            return true
         }
     }
     
