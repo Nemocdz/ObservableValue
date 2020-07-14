@@ -35,6 +35,19 @@ final class MobxSwiftTests: XCTestCase {
         }
         XCTAssert(observer.remove())
         XCTAssert(!observer.remove())
+        
+        let observers = [
+            success!.addObserver(for: self) { _,_,_ in  },
+            success!.addObserver(for: self) { _,_,_ in  },
+            success!.addObserver(for: self) { _,_,_ in  },
+            success!.addObserver(for: self) { _,_,_ in  },
+        ]
+        
+        success?.removeObservers()
+        observers.forEach {
+            XCTAssert(!$0.remove())
+        }
+        
         let observer2 = success!.addObserver(for: object) { object, oldValue, newValue in
         }
         success = nil

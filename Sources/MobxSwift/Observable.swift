@@ -80,12 +80,23 @@ public final class Observeable<Value> {
         value = newValue
     }
     
+    public func removeObservers() {
+        lock.lock()
+        defer { lock.unlock() }
+        
+        observers.removeAll()
+    }
+    
     @discardableResult
     private func remove(_ observer: Observer<Value>) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         
         return observers.remove(observer) != nil
+    }
+    
+    deinit {
+        print("bbb")
     }
 }
 
