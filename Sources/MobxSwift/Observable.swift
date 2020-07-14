@@ -10,7 +10,6 @@ import Foundation
 @propertyWrapper
 public final class Observeable<Value> {
     private var observers: Set<Observer<Value>> = []
-    private var uniqueID = (0...).makeIterator()
     private let lock = NSRecursiveLock()
     
     public private(set) var value: Value {
@@ -58,7 +57,7 @@ public final class Observeable<Value> {
         
         handle(object: object, newValue: value)
         
-        let observer = Observer<Value>(id: uniqueID.next()!) { [weak object] oldValue, newValue in
+        let observer = Observer<Value> { [weak object] oldValue, newValue in
             guard let object = object else { return false }
             handle(object: object, oldValue: oldValue, newValue: newValue)
             return true

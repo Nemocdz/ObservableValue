@@ -24,12 +24,16 @@ public final class AnyObserver {
 final class Observer<Value> {
     typealias NotifyHandler = (Value, Value) -> Bool
     
-    private let id: Int
     let notifyHandler: NotifyHandler
     
-    init(id: Int, notifyHandler: @escaping NotifyHandler) {
-        self.id = id
+    init(notifyHandler: @escaping NotifyHandler) {
         self.notifyHandler = notifyHandler
+    }
+}
+
+extension Observer: Identifiable {
+    var id: ObjectIdentifier {
+        return ObjectIdentifier(self)
     }
 }
 
