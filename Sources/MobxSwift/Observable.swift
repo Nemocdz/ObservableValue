@@ -94,10 +94,6 @@ public final class Observeable<Value> {
         
         return observers.remove(observer) != nil
     }
-    
-    deinit {
-        print("bbb")
-    }
 }
 
 extension Observeable {

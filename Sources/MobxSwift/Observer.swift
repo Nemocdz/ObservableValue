@@ -31,10 +31,6 @@ final class Observer<Value> {
         self.id = id
         self.notifyHandler = notifyHandler
     }
-    
-    deinit {
-        print("ass")
-    }
 }
 
 extension Observer: Hashable {
