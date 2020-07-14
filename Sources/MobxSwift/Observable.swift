@@ -40,6 +40,23 @@ public final class Observeable<Value> {
         }
     }
     
+    public func update(_ newValue: Value) {
+        lock.lock()
+        defer { lock.unlock() }
+        
+        value = newValue
+    }
+    
+    @discardableResult
+    private func remove(_ observer: Observer<Value>) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        
+        return observers.remove(observer) != nil
+    }
+}
+
+extension Observeable {
     @discardableResult
     public func addObserver(at queue: DispatchQueue? = nil, handler: @escaping (ObservedChange<Value>) -> ()) -> AnyObserver {
         return addObserver(for: self, at: queue) { _, change in
@@ -79,26 +96,11 @@ public final class Observeable<Value> {
         }
     }
     
-    public func update(_ newValue: Value) {
-        lock.lock()
-        defer { lock.unlock() }
-        
-        value = newValue
-    }
-    
     public func removeObservers() {
         lock.lock()
         defer { lock.unlock() }
         
         observers.removeAll()
-    }
-    
-    @discardableResult
-    private func remove(_ observer: Observer<Value>) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        
-        return observers.remove(observer) != nil
     }
 }
 
