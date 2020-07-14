@@ -6,8 +6,8 @@ final class MobxSwiftTests: XCTestCase {
         let success = Observeable<Bool>(false)
         XCTAssert(!success.value)
         let object = ObserverObject()
-        success.addObserver(for: object) { object, oldValue, newValue in
-            object.success = newValue
+        success.addObserver(for: object) { object, change in
+            object.success = change.newValue
         }
         XCTAssert(!object.success)
         success.update(true)
@@ -21,7 +21,7 @@ final class MobxSwiftTests: XCTestCase {
         }
         
         let success = Observeable<Bool>(false)
-        success.addObserver(for: object!) { object, oldValue, newValue in
+        success.addObserver(for: object!) { object, change in
         }
         
         object = nil
@@ -31,16 +31,16 @@ final class MobxSwiftTests: XCTestCase {
     func testObserverRemove() {
         var success: Observeable<Bool>? = Observeable<Bool>(false)
         let object = ObserverObject()
-        let observer = success!.addObserver(for: object) { object, oldValue, newValue in
+        let observer = success!.addObserver(for: object) { object, change in
         }
         XCTAssert(observer.remove())
         XCTAssert(!observer.remove())
         
         let observers = [
-            success!.addObserver(for: self) { _,_,_ in  },
-            success!.addObserver(for: self) { _,_,_ in  },
-            success!.addObserver(for: self) { _,_,_ in  },
-            success!.addObserver(for: self) { _,_,_ in  },
+            success!.addObserver(for: self) { _,_ in  },
+            success!.addObserver(for: self) { _,_ in  },
+            success!.addObserver(for: self) { _,_ in  },
+            success!.addObserver(for: self) { _,_ in  },
         ]
         
         success?.removeObservers()
@@ -48,10 +48,21 @@ final class MobxSwiftTests: XCTestCase {
             XCTAssert(!$0.remove())
         }
         
-        let observer2 = success!.addObserver(for: object) { object, oldValue, newValue in
+        let observer2 = success!.addObserver(for: object) { object, change in
         }
         success = nil
         XCTAssert(!observer2.remove())
+    }
+    
+    func testObservableValueChanged2() {
+        let success = Observeable(true)
+        var sucesssValue = false
+        success.addObserver { change in
+            sucesssValue = change.newValue
+        }
+        XCTAssert(sucesssValue)
+        success.update(false)
+        XCTAssert(!sucesssValue)
     }
 
     static var allTests = [
