@@ -25,41 +25,104 @@ final class MobxSwiftTests: XCTestCase {
         }
         
         object = nil
-        wait(for: [exp], timeout: 1.0)
+        wait(for: [exp], timeout: 1)
     }
     
-    func testObserverRemove() {
-        var success: Observeable<Bool>? = Observeable<Bool>(false)
-        var c = [AnyObserver]()
+    func testObserverRemove0() {
+        let exp = expectation(description: "remove_0")
+        
+        let success = Observeable<Bool>(false)
         var successValue = false
-        success!.addObserver(handler: { new in
-            successValue = successValue
+        var c = [AnyObserver]()
+        success.addObserver(handler: { change in
+            successValue = change.newValue
         }).store(in: &c)
         c.removeAll()
-        success?.update(true)
-        XCTAssert(!successValue)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            success.update(true)
+            XCTAssert(!successValue)
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1.1)
+    }
+    
+    func testObserverRemove1() {
+        let exp = expectation(description: "remove_1")
+        
+        let success = Observeable<Bool>(false)
+        var successValue = false
         
         var object: AnyObject? = NSObject()
-        success!.addObserver(handler: { new in
-            successValue = successValue
+        success.addObserver(handler: { change in
+            successValue = change.newValue
         }).store(in: object)
         object = nil
-        success?.update(true)
-        XCTAssert(!successValue)
         
-        let o = success!.addObserver(handler: { new in
-            successValue = successValue
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            success.update(true)
+            XCTAssert(!successValue)
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1.1)
+    }
+    
+    func testObserverRemove2() {
+        let exp = expectation(description: "remove_2")
+        
+        let success = Observeable<Bool>(false)
+        var successValue = false
+        var c = [AnyObserver]()
+        var object: AnyObject? = NSObject()
+        success.addObserver(handler: { change in
+            successValue = change.newValue
+        }).store(in: &c).store(in: object)
+        object = nil
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            success.update(true)
+            XCTAssert(!successValue)
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1.1)
+    }
+    
+    func testObserverRemove3() {
+        let exp = expectation(description: "remove_3")
+        
+        let success = Observeable<Bool>(false)
+        var successValue = false
+        let o = success.addObserver(handler: { change in
+            successValue = change.newValue
         })
         o.remove()
-        success?.update(true)
-        XCTAssert(!successValue)
         
-        success!.addObserver { new in
-            successValue = successValue
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            success.update(true)
+            XCTAssert(!successValue)
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1.1)
+    }
+    
+    func testObserverRemove4() {
+        let exp = expectation(description: "remove_4")
+        
+        var success: Observeable<Bool>? = Observeable<Bool>(false)
+        weak var a = success!.addObserver { change in
         }
         success = nil
-        success?.update(true)
-        XCTAssert(!successValue)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            XCTAssert(a == nil)
+            exp.fulfill()
+        }
+        
+        wait(for: [exp], timeout: 1.1)
     }
     
     func testObservableValueChanged2() {
@@ -76,7 +139,7 @@ final class MobxSwiftTests: XCTestCase {
     static var allTests = [
         ("test1", testObservableValueChanged),
         ("test2", testObservableRetain),
-        ("test3", testObserverRemove),
+        //("test3", testObserverRemove),
         ("test4", testObservableValueChanged2),
     ]
 }

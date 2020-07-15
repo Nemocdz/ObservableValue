@@ -12,7 +12,7 @@ public final class Observeable<Value> {
     private var observers: Set<Observer<Value>> = []
     private let lock = NSRecursiveLock()
     
-    private var objectObservers: [AnyObserver] = []
+    private var objectObservers: Set<AnyObserver> = []
     
     public private(set) var value: Value {
         didSet {
@@ -45,6 +45,10 @@ public final class Observeable<Value> {
     public func update(_ newValue: Value) {
         lock.lock()
         defer { lock.unlock() }
+        objectObservers.filter { $0.shouldRemove() }.forEach {
+            $0.remove()
+        }
+        
         objectObservers = objectObservers.filter{ !$0.shouldRemove() }
         value = newValue
     }
@@ -90,13 +94,14 @@ extension Observeable {
         
         observers.insert(observer)
         
-        return AnyObserver(removeHandler: { [weak self, weak observer] in
+        return AnyObserver(removeHandler: { [weak self, weak observer] anyObserver in
             guard let self = self, let observer = observer else { return false }
+            self.objectObservers.remove(anyObserver)
             self.remove(observer)
             return true
         }, storeInObjectHandler: { [weak self] observer in
             guard let self = self else { return }
-            self.objectObservers.append(observer)
+            self.objectObservers.insert(observer)
         }).store(in: self)
     }
     

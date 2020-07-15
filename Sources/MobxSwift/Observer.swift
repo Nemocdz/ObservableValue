@@ -8,7 +8,7 @@
 import Foundation
 
 public final class AnyObserver {
-    typealias RemoveHandler = () -> Bool
+    typealias RemoveHandler = (AnyObserver) -> Bool
     
     private let removeHandler: RemoveHandler
     private var objectIsRemove: (() -> Bool)
@@ -46,11 +46,27 @@ public final class AnyObserver {
     
     @discardableResult
     public func remove() -> Bool {
-        return removeHandler()
+        return removeHandler(self)
     }
     
     deinit {
         remove()
+    }
+}
+
+extension AnyObserver: Identifiable {
+    public var id: ObjectIdentifier {
+        return ObjectIdentifier(self)
+    }
+}
+
+extension AnyObserver: Hashable {
+    public static func == (lhs: AnyObserver, rhs: AnyObserver) -> Bool {
+        return lhs.id == rhs.id
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 
