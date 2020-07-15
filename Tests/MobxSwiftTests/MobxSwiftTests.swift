@@ -30,28 +30,36 @@ final class MobxSwiftTests: XCTestCase {
     
     func testObserverRemove() {
         var success: Observeable<Bool>? = Observeable<Bool>(false)
-        let object = ObserverObject()
-        let observer = success!.addObserver(for: object) { object, change in
-        }
-        XCTAssert(observer.remove())
-        XCTAssert(!observer.remove())
+        var c = [AnyObserver]()
+        var successValue = false
+        success!.addObserver(handler: { new in
+            successValue = successValue
+        }).store(in: &c)
+        c.removeAll()
+        success?.update(true)
+        XCTAssert(!successValue)
         
-        let observers = [
-            success!.addObserver(for: self) { _,_ in  },
-            success!.addObserver(for: self) { _,_ in  },
-            success!.addObserver(for: self) { _,_ in  },
-            success!.addObserver(for: self) { _,_ in  },
-        ]
+        var object: AnyObject? = NSObject()
+        success!.addObserver(handler: { new in
+            successValue = successValue
+        }).store(in: object)
+        object = nil
+        success?.update(true)
+        XCTAssert(!successValue)
         
-        success?.removeObservers()
-        observers.forEach {
-            XCTAssert(!$0.remove())
-        }
+        let o = success!.addObserver(handler: { new in
+            successValue = successValue
+        })
+        o.remove()
+        success?.update(true)
+        XCTAssert(!successValue)
         
-        let observer2 = success!.addObserver(for: object) { object, change in
+        success!.addObserver { new in
+            successValue = successValue
         }
         success = nil
-        XCTAssert(!observer2.remove())
+        success?.update(true)
+        XCTAssert(!successValue)
     }
     
     func testObservableValueChanged2() {
@@ -69,6 +77,7 @@ final class MobxSwiftTests: XCTestCase {
         ("test1", testObservableValueChanged),
         ("test2", testObservableRetain),
         ("test3", testObserverRemove),
+        ("test4", testObservableValueChanged2),
     ]
 }
 

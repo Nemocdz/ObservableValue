@@ -12,10 +12,12 @@ public final class Observeable<Value> {
     private var observers: Set<Observer<Value>> = []
     private let lock = NSRecursiveLock()
     
+    private var objectObservers: [AnyObserver] = []
+    
     public private(set) var value: Value {
         didSet {
             let newValue = value
-            observers = observers.filter{ $0.notifyHandler(oldValue, newValue) }
+            observers.forEach { $0.notifyHandler(oldValue, newValue) }
         }
     }
     
@@ -43,7 +45,7 @@ public final class Observeable<Value> {
     public func update(_ newValue: Value) {
         lock.lock()
         defer { lock.unlock() }
-        
+        objectObservers = objectObservers.filter{ !$0.shouldRemove() }
         value = newValue
     }
     
@@ -58,42 +60,44 @@ public final class Observeable<Value> {
 
 extension Observeable {
     @discardableResult
-    public func addObserver(at queue: DispatchQueue? = nil, handler: @escaping (ObservedChange<Value>) -> ()) -> AnyObserver {
-        return addObserver(for: self, at: queue) { _, change in
-            handler(change)
-        }
-    }
-    
-    @discardableResult
     public func addObserver<O>(for object: O, at queue: DispatchQueue? = nil, handler: @escaping (O, ObservedChange<Value>) -> ()) -> AnyObserver where O: AnyObject {
+        return addObserver(at: queue) { [weak object] change in
+            guard let object = object else { return }
+            handler(object, change)
+        }.store(in: object)
+    }
+        
+    @discardableResult
+    public func addObserver(at queue: DispatchQueue? = nil, handler: @escaping (ObservedChange<Value>) -> ()) -> AnyObserver {
         lock.lock()
         defer { lock.unlock() }
         
-        func handle(object: O, oldValue: Value? = nil, newValue: Value) {
+        func handle(oldValue: Value? = nil, newValue: Value) {
             if let queue = queue {
                 queue.async {
-                    handler(object, ObservedChange(oldValue, newValue))
+                    handler(ObservedChange(oldValue, newValue))
                 }
             } else {
-                handler(object, ObservedChange(oldValue, newValue))
+                handler(ObservedChange(oldValue, newValue))
             }
         }
         
-        handle(object: object, newValue: value)
+        handle(newValue: value)
         
-        let observer = Observer<Value> { [weak object] oldValue, newValue in
-            guard let object = object else { return false }
-            handle(object: object, oldValue: oldValue, newValue: newValue)
-            return true
+        let observer = Observer<Value> { oldValue, newValue in
+            handle(oldValue: oldValue, newValue: newValue)
         }
         
         observers.insert(observer)
         
-        return AnyObserver { [weak self, weak observer] in
+        return AnyObserver(removeHandler: { [weak self, weak observer] in
             guard let self = self, let observer = observer else { return false }
             self.remove(observer)
             return true
-        }
+        }, storeInObjectHandler: { [weak self] observer in
+            guard let self = self else { return }
+            self.objectObservers.append(observer)
+        }).store(in: self)
     }
     
     public func removeObservers() {

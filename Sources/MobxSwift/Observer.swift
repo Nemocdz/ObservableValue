@@ -11,18 +11,51 @@ public final class AnyObserver {
     typealias RemoveHandler = () -> Bool
     
     private let removeHandler: RemoveHandler
+    private var objectIsRemove: (() -> Bool)
+    private let storeInObjectHandler: (AnyObserver) -> ()
     
-    init(removeHandler: @escaping RemoveHandler) {
+    init(removeHandler: @escaping RemoveHandler, storeInObjectHandler: @escaping (AnyObserver) -> ()) {
         self.removeHandler = removeHandler
+        self.storeInObjectHandler = storeInObjectHandler
+        self.objectIsRemove = {
+            return true
+        }
     }
     
+    @discardableResult
+    public func store(in object: AnyObject?) -> AnyObserver {
+        objectIsRemove = { [weak object] in
+            return object == nil
+        }
+        storeInObjectHandler(self)
+        return self
+    }
+    
+    func shouldRemove() -> Bool {
+        return objectIsRemove()
+    }
+    
+    @discardableResult
+    public func store<C>(in collection: inout C) -> AnyObserver where C : RangeReplaceableCollection, C.Element == AnyObserver {
+        collection.append(self)
+        objectIsRemove = {
+            return true
+        }
+        return self
+    }
+    
+    @discardableResult
     public func remove() -> Bool {
         return removeHandler()
+    }
+    
+    deinit {
+        remove()
     }
 }
 
 final class Observer<Value> {
-    typealias NotifyHandler = (Value, Value) -> Bool
+    typealias NotifyHandler = (Value, Value) -> ()
     
     let notifyHandler: NotifyHandler
     
