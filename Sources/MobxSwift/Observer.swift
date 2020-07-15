@@ -8,75 +8,60 @@
 import Foundation
 
 public final class AnyObserver {
-    typealias RemoveHandler = (AnyObserver) -> Bool
+    typealias RemoveHandler = () -> Bool
+    typealias StoreInHandler = ((AnyObserver, AnyObject?) -> ())
     
-    private let removeHandler: RemoveHandler
-    private var objectIsRemove: (() -> Bool)
-    private let storeInObjectHandler: (AnyObserver) -> ()
+    private let remove: RemoveHandler
+    private let storeIn: StoreInHandler
+    var storeOption: StoreOptions = []
     
-    init(removeHandler: @escaping RemoveHandler, storeInObjectHandler: @escaping (AnyObserver) -> ()) {
-        self.removeHandler = removeHandler
-        self.storeInObjectHandler = storeInObjectHandler
-        self.objectIsRemove = {
-            return true
-        }
+    init(removeHandler: @escaping RemoveHandler, storeInHandler: @escaping StoreInHandler) {
+        remove = removeHandler
+        storeIn = storeInHandler
     }
     
-    @discardableResult
-    public func store(in object: AnyObject?) -> AnyObserver {
-        objectIsRemove = { [weak object] in
-            return object == nil
-        }
-        storeInObjectHandler(self)
-        return self
+    public func store(in object: AnyObject?) {
+        storeIn(self, object)
+        storeOption.insert(.object)
     }
     
-    func shouldRemove() -> Bool {
-        return objectIsRemove()
-    }
-    
-    @discardableResult
-    public func store<C>(in collection: inout C) -> AnyObserver where C : RangeReplaceableCollection, C.Element == AnyObserver {
+    public func store<C>(in collection: inout C) where C : RangeReplaceableCollection, C.Element == AnyObserver {
         collection.append(self)
-        objectIsRemove = {
-            return true
-        }
-        return self
+        storeOption.insert(.collection)
     }
     
     @discardableResult
-    public func remove() -> Bool {
-        return removeHandler(self)
+    public func stop() -> Bool {
+        return remove()
     }
     
     deinit {
-        remove()
+        stop()
     }
 }
 
-extension AnyObserver: Identifiable {
-    public var id: ObjectIdentifier {
-        return ObjectIdentifier(self)
+extension AnyObserver {
+    struct StoreOptions: OptionSet {
+        let rawValue: Int
+        
+        static let object = StoreOptions(rawValue: 1 << 0)
+        static let collection = StoreOptions(rawValue: 1 << 1)
     }
 }
 
-extension AnyObserver: Hashable {
-    public static func == (lhs: AnyObserver, rhs: AnyObserver) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-}
 
 final class Observer<Value> {
-    typealias NotifyHandler = (Value, Value) -> ()
+    typealias NotifyHandler = (ObservedChange<Value>) -> ()
     
-    let notifyHandler: NotifyHandler
+    let notify: NotifyHandler
+    
+    var retainObject: AnyObject?
+    
+    var isObserving: (Observer<Value>) -> Bool
     
     init(notifyHandler: @escaping NotifyHandler) {
-        self.notifyHandler = notifyHandler
+        self.notify = notifyHandler
+        self.isObserving = { _ in true }
     }
 }
 

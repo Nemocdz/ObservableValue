@@ -12,12 +12,10 @@ public final class Observeable<Value> {
     private var observers: Set<Observer<Value>> = []
     private let lock = NSRecursiveLock()
     
-    private var objectObservers: Set<AnyObserver> = []
-    
     public private(set) var value: Value {
         didSet {
             let newValue = value
-            observers.forEach { $0.notifyHandler(oldValue, newValue) }
+            notifyAll(oldValue: oldValue, newValue: newValue)
         }
     }
     
@@ -45,12 +43,13 @@ public final class Observeable<Value> {
     public func update(_ newValue: Value) {
         lock.lock()
         defer { lock.unlock() }
-        objectObservers.filter { $0.shouldRemove() }.forEach {
-            $0.remove()
-        }
-        
-        objectObservers = objectObservers.filter{ !$0.shouldRemove() }
+
         value = newValue
+    }
+    
+    private func notifyAll(oldValue: Value, newValue: Value) {
+        observers = observers.filter { $0.isObserving($0) }
+        observers.forEach { $0.notify(ObservedChange(oldValue, newValue)) }
     }
     
     @discardableResult
@@ -65,10 +64,12 @@ public final class Observeable<Value> {
 extension Observeable {
     @discardableResult
     public func addObserver<O>(for object: O, at queue: DispatchQueue? = nil, handler: @escaping (O, ObservedChange<Value>) -> ()) -> AnyObserver where O: AnyObject {
-        return addObserver(at: queue) { [weak object] change in
+        let observer = addObserver(at: queue) { [weak object] change in
             guard let object = object else { return }
             handler(object, change)
-        }.store(in: object)
+        }
+        observer.store(in: object)
+        return observer
     }
         
     @discardableResult
@@ -94,15 +95,19 @@ extension Observeable {
         
         observers.insert(observer)
         
-        return AnyObserver(removeHandler: { [weak self, weak observer] anyObserver in
+        return AnyObserver(removeHandler: { [weak self, weak observer] in
             guard let self = self, let observer = observer else { return false }
-            self.objectObservers.remove(anyObserver)
-            self.remove(observer)
-            return true
-        }, storeInObjectHandler: { [weak self] observer in
-            guard let self = self else { return }
-            self.objectObservers.insert(observer)
-        }).store(in: self)
+            return self.remove(observer)
+        }, storeInHandler: { [weak observer] retain, object in
+            guard let observer = observer else { return }
+            observer.retainObject = retain
+            observer.isObserving = { [weak object, unowned retain] observer in
+                if object == nil {
+                    observer.retainObject = nil
+                }
+                return retain.storeOption == .object ? object != nil : true
+            }
+        })
     }
     
     public func removeObservers() {
