@@ -7,7 +7,7 @@
 
 import Foundation
 
-public final class AnyObserver {
+public class AnyObserver {
     typealias RemoveHandler = () -> Bool
     typealias StoreInHandler = ((AnyObserver, AnyObject?) -> ())
     

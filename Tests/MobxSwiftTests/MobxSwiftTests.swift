@@ -89,7 +89,7 @@ final class MobxSwiftTests: XCTestCase {
     func testObserverRemove2() {
         let exp = expectation(description: "remove_2")
         
-        let success = Observeable<Bool>(false)
+        let success = Observeable<Bool>(true)
         var successValue = false
         var c = [AnyObserver]()
         var object: AnyObject? = NSObject()
@@ -98,23 +98,10 @@ final class MobxSwiftTests: XCTestCase {
         }
         a.store(in: &c)
         a.store(in: object)
+        c.removeAll()
         object = nil
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            let _ = c
-            success.update(true)
-            XCTAssert(successValue)
-            c.removeAll()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                success.update(false)
-                XCTAssert(successValue)
-                exp.fulfill()
-            }
-        }
-        
-        
-        
-        wait(for: [exp], timeout: 4)
+        wait(for: [exp], timeout: 1)
     }
     
     /// 手动 remove
