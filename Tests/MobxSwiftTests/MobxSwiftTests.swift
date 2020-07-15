@@ -2,7 +2,8 @@ import XCTest
 @testable import MobxSwift
 
 final class MobxSwiftTests: XCTestCase {
-    func testObservableValueChanged() {
+    /// add 接口1
+    func testObservableValueChanged0() {
         let success = Observeable<Bool>(false)
         XCTAssert(!success.value)
         let object = ObserverObject()
@@ -14,8 +15,21 @@ final class MobxSwiftTests: XCTestCase {
         XCTAssert(object.success)
     }
     
+    /// add 接口2
+    func testObservableValueChanged1() {
+        let success = Observeable(true)
+        var sucesssValue = false
+        success.addObserver { change in
+            sucesssValue = change.newValue
+        }
+        XCTAssert(sucesssValue)
+        success.update(false)
+        XCTAssert(!sucesssValue)
+    }
+    
+    /// 循环引用
     func testObservableRetain() {
-        let exp = expectation(description: "retain_cycle_1")
+        let exp = expectation(description: "retain_cycle_0")
         var object: RetainCycle? = RetainCycle {
             exp.fulfill()
         }
@@ -28,6 +42,7 @@ final class MobxSwiftTests: XCTestCase {
         wait(for: [exp], timeout: 1)
     }
     
+    /// store 在 collection 中
     func testObserverRemove0() {
         let exp = expectation(description: "remove_0")
         
@@ -48,6 +63,7 @@ final class MobxSwiftTests: XCTestCase {
         wait(for: [exp], timeout: 1.1)
     }
     
+    /// store 在其他 object 中
     func testObserverRemove1() {
         let exp = expectation(description: "remove_1")
         
@@ -69,6 +85,7 @@ final class MobxSwiftTests: XCTestCase {
         wait(for: [exp], timeout: 1.1)
     }
     
+    /// 覆盖 store
     func testObserverRemove2() {
         let exp = expectation(description: "remove_2")
         
@@ -82,6 +99,7 @@ final class MobxSwiftTests: XCTestCase {
         object = nil
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            let _ = c
             success.update(true)
             XCTAssert(!successValue)
             exp.fulfill()
@@ -90,6 +108,7 @@ final class MobxSwiftTests: XCTestCase {
         wait(for: [exp], timeout: 1.1)
     }
     
+    /// 手动 remove
     func testObserverRemove3() {
         let exp = expectation(description: "remove_3")
         
@@ -109,6 +128,7 @@ final class MobxSwiftTests: XCTestCase {
         wait(for: [exp], timeout: 1.1)
     }
     
+    /// store 在默认的 observable 中
     func testObserverRemove4() {
         let exp = expectation(description: "remove_4")
         
@@ -124,23 +144,9 @@ final class MobxSwiftTests: XCTestCase {
         
         wait(for: [exp], timeout: 1.1)
     }
-    
-    func testObservableValueChanged2() {
-        let success = Observeable(true)
-        var sucesssValue = false
-        success.addObserver { change in
-            sucesssValue = change.newValue
-        }
-        XCTAssert(sucesssValue)
-        success.update(false)
-        XCTAssert(!sucesssValue)
-    }
 
     static var allTests = [
-        ("test1", testObservableValueChanged),
-        ("test2", testObservableRetain),
-        //("test3", testObserverRemove),
-        ("test4", testObservableValueChanged2),
+        ("test1", testObservableValueChanged0),
     ]
 }
 
