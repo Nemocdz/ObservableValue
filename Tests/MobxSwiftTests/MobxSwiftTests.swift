@@ -19,7 +19,7 @@ final class MobxSwiftTests: XCTestCase {
     func testObservableValueChanged1() {
         let success = Observeable(true)
         var sucesssValue = false
-        let a = success.addObserver { change in
+        success.addObserver { change in
             sucesssValue = change.newValue
         }
         XCTAssert(sucesssValue)
@@ -42,31 +42,24 @@ final class MobxSwiftTests: XCTestCase {
         wait(for: [exp], timeout: 1)
     }
     
-    /// store 在 collection 中
+    /// DisposeBag
     func testObserverRemove0() {
-        let exp = expectation(description: "remove_0")
-        
         let success = Observeable<Bool>(false)
         var successValue = false
-        var c = [AnyObserver]()
+        let bag = DisposeBag()
+        
         success.addObserver(handler: { change in
             successValue = change.newValue
-        }).store(in: &c)
-        c.removeAll()
+        }).store(in: bag)
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            success.update(true)
-            XCTAssert(!successValue)
-            exp.fulfill()
-        }
+        bag.stop()
         
-        wait(for: [exp], timeout: 1.1)
+        success.update(true)
+        XCTAssert(!successValue)
     }
-    
+        
     /// store 在其他 object 中
     func testObserverRemove1() {
-        let exp = expectation(description: "remove_1")
-        
         let success = Observeable<Bool>(false)
         var successValue = false
         
@@ -76,38 +69,32 @@ final class MobxSwiftTests: XCTestCase {
         }).store(in: object)
         object = nil
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            success.update(true)
-            XCTAssert(!successValue)
-            exp.fulfill()
-        }
-        
-        wait(for: [exp], timeout: 1.1)
+        success.update(true)
+        XCTAssert(!successValue)
     }
     
-    /// 增加 store
+    /// 覆盖 store
     func testObserverRemove2() {
-        let exp = expectation(description: "remove_2")
-        
         let success = Observeable<Bool>(true)
         var successValue = false
-        var c = [AnyObserver]()
         var object: AnyObject? = NSObject()
+        var object2: AnyObject? = NSObject()
         let a = success.addObserver { change in
             successValue = change.newValue
         }
-        a.store(in: &c)
         a.store(in: object)
-        c.removeAll()
+        a.store(in: object2)
         object = nil
         
-        wait(for: [exp], timeout: 1)
+        success.update(true)
+        XCTAssert(successValue)
+        object2 = nil
+        success.update(false)
+        XCTAssert(successValue)
     }
     
     /// 手动 remove
     func testObserverRemove3() {
-        let exp = expectation(description: "remove_3")
-        
         let success = Observeable<Bool>(false)
         var successValue = false
         let o = success.addObserver(handler: { change in
@@ -115,16 +102,11 @@ final class MobxSwiftTests: XCTestCase {
         })
         o.stop()
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            success.update(true)
-            XCTAssert(!successValue)
-            exp.fulfill()
-        }
-        
-        wait(for: [exp], timeout: 1.1)
+        success.update(true)
+        XCTAssert(!successValue)
     }
     
-    /// store 在默认的 observable 中
+    /// 检查释放
     func testObserverRemove4() {
         let exp = expectation(description: "remove_4")
         

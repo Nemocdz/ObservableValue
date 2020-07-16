@@ -48,7 +48,7 @@ public final class Observeable<Value> {
     }
     
     private func notifyAll(oldValue: Value, newValue: Value) {
-        observers = observers.filter { $0.isObserving($0) }
+        observers = observers.filter { $0.isObserving() }
         observers.forEach { $0.notify(ObservedChange(oldValue, newValue)) }
     }
     
@@ -64,12 +64,12 @@ public final class Observeable<Value> {
 extension Observeable {
     @discardableResult
     public func addObserver<O>(for object: O, at queue: DispatchQueue? = nil, handler: @escaping (O, ObservedChange<Value>) -> ()) -> AnyObserver where O: AnyObject {
-        let observer = addObserver(at: queue) { [weak object] change in
+        let o = addObserver(at: queue) { [weak object] change in
             guard let object = object else { return }
             handler(object, change)
         }
-        observer.store(in: object)
-        return observer
+        o.store(in: object)
+        return o
     }
         
     @discardableResult
@@ -98,14 +98,10 @@ extension Observeable {
         return AnyObserver(removeHandler: { [weak self, weak observer] in
             guard let self = self, let observer = observer else { return false }
             return self.remove(observer)
-        }, storeInHandler: { [weak observer] retain, object in
+        }, storeInHandler: { [weak observer] object in
             guard let observer = observer else { return }
-            observer.retainObject = retain
-            observer.isObserving = { [weak object, unowned retain] observer in
-                if object == nil {
-                    observer.retainObject = nil
-                }
-                return retain.storeOption == .object ? object != nil : true
+            observer.isObserving = { [weak object] in
+                return object != nil
             }
         })
     }
