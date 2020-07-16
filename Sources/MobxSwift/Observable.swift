@@ -40,13 +40,6 @@ public final class Observeable<Value> {
         }
     }
     
-    public func update(_ newValue: Value) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        value = newValue
-    }
-    
     private func notifyAll(oldValue: Value, newValue: Value) {
         observers = observers.filter { $0.isObserving() }
         observers.forEach { $0.notify(ObservedChange(oldValue, newValue)) }
@@ -62,16 +55,13 @@ public final class Observeable<Value> {
 }
 
 extension Observeable {
-    @discardableResult
-    public func addObserver<O>(for object: O, at queue: DispatchQueue? = nil, handler: @escaping (O, ObservedChange<Value>) -> ()) -> AnyObserver where O: AnyObject {
-        let o = addObserver(at: queue) { [weak object] change in
-            guard let object = object else { return }
-            handler(object, change)
-        }
-        o.store(in: object)
-        return o
+    public func update(_ newValue: Value) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        value = newValue
     }
-        
+    
     @discardableResult
     public func addObserver(at queue: DispatchQueue? = nil, handler: @escaping (ObservedChange<Value>) -> ()) -> AnyObserver {
         lock.lock()
@@ -113,25 +103,3 @@ extension Observeable {
         observers.removeAll()
     }
 }
-
-extension Observeable {
-    @discardableResult
-    public func bind<R, V>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, V>, at queue: DispatchQueue? = nil, transform: @escaping (Value) -> V) -> AnyObserver where R: AnyObject {
-        return addObserver(for: receiver, at: queue) { receiver, change in
-            receiver[keyPath: receiverKeyPath] = transform(change.newValue)
-        }
-    }
-    
-    @discardableResult
-    public func bind<R>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, Value>, at queue: DispatchQueue? = nil) -> AnyObserver where R: AnyObject {
-        let transform: (Value) -> Value = { $0 }
-        return bind(to: receiver, receiverKeyPath, transform: transform)
-    }
-    
-    @discardableResult
-    public func bind<R>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, Value?>, at queue: DispatchQueue? = nil) -> AnyObserver where R: AnyObject {
-        let transform: (Value) -> Value? = { $0 as Value? }
-        return bind(to: receiver, receiverKeyPath, transform: transform)
-    }
-}
-
