@@ -121,6 +121,23 @@ final class MobxSwiftTests: XCTestCase {
         success.update(true)
         XCTAssert(!successValue)
     }
+    
+    func testBind() {
+        let success = Observeable<Bool>(false)
+        let object = ObserverObject()
+        let observer = success.bind(to: object, \.success)
+        success.update(true)
+        let changeTime1 = object.changeTime
+        success.update(true)
+        XCTAssert(object.changeTime == changeTime1 + 1)
+        observer.stop()
+        success.bindDiff(to: object, \.success)
+        success.update(true)
+        XCTAssert(object.success)
+        let changeTime0 = object.changeTime
+        success.update(true)
+        XCTAssert(object.changeTime == changeTime0)
+    }
 
     static var allTests = [
         ("test1", testObservableValueChanged),
@@ -141,6 +158,12 @@ extension MobxSwiftTests {
     }
     
     class ObserverObject {
-        var success = false
+        var success = false {
+            didSet {
+                changeTime += 1
+            }
+        }
+        
+        var changeTime = 0
     }
 }
