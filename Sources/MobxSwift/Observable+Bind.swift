@@ -7,13 +7,19 @@
 
 import Foundation
 
-extension Observeable {    
+extension Observeable {
     // 0
     @discardableResult
     public func bind<R>(to receiver: R, at queue: DispatchQueue? = nil, handler: @escaping (R, ObservedChange<Value>) -> ()) -> AnyObserver where R: AnyObject {
-        let observer = addObserver(at: queue) { [weak receiver] change in
+        let observer = addObserver { [weak receiver] change in
             guard let receiver = receiver else { return }
-            handler(receiver, change)
+            if let queue = queue {
+                queue.async {
+                    handler(receiver, change)
+                }
+            } else {
+                handler(receiver, change)
+            }
         }
         observer.store(in: receiver)
         return observer

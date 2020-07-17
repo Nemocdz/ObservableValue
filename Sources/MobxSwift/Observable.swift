@@ -63,24 +63,14 @@ extension Observeable {
     }
     
     @discardableResult
-    public func addObserver(at queue: DispatchQueue? = nil, handler: @escaping (ObservedChange<Value>) -> ()) -> AnyObserver {
+    public func addObserver(handler: @escaping (ObservedChange<Value>) -> ()) -> AnyObserver {
         lock.lock()
         defer { lock.unlock() }
         
-        func handle(oldValue: Value? = nil, newValue: Value) {
-            if let queue = queue {
-                queue.async {
-                    handler(ObservedChange(oldValue, newValue))
-                }
-            } else {
-                handler(ObservedChange(oldValue, newValue))
-            }
-        }
-        
-        handle(newValue: value)
+        handler(ObservedChange(nil, value))
         
         let observer = Observer<Value> { oldValue, newValue in
-            handle(oldValue: oldValue, newValue: newValue)
+            handler(ObservedChange(oldValue, newValue))
         }
         
         observers.insert(observer)
