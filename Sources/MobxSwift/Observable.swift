@@ -6,11 +6,22 @@
 //
 
 import Foundation
+import Combine
 
-@propertyWrapper
 public final class Observeable<Value> {
     private var observers: Set<Observer<Value>> = []
     private let lock = NSRecursiveLock()
+    private let dispatchKey = DispatchSpecificKey<Void>()
+    
+    var notifyPredicate: (ObservedChange<Value>) -> Bool
+    var queue: DispatchQueue = .main {
+        willSet {
+            queue.setSpecific(key: dispatchKey, value: nil)
+        }
+        didSet {
+            queue.setSpecific(key: dispatchKey, value: ())
+        }
+    }
     
     public private(set) var value: Value {
         didSet {
@@ -21,28 +32,19 @@ public final class Observeable<Value> {
     
     public init(_ value: Value) {
         self.value = value
+        self.notifyPredicate = { _ in true }
+        queue.setSpecific(key: dispatchKey, value: ())
     }
-    
-    public convenience init(wrappedValue: Value) {
-        self.init(wrappedValue)
-    }
-    
-    public var projectedValue: Observeable<Value> {
-        return self
-    }
-    
-    public var wrappedValue: Value {
-        get {
-            return value
-        }
-        set {
-            update(newValue)
-        }
+
+    deinit {
+        queue.setSpecific(key: dispatchKey, value: nil)
     }
     
     private func notifyAll(oldValue: Value, newValue: Value) {
         observers = observers.filter { $0.isObserving() }
-        observers.forEach { $0.notify(ObservedChange(oldValue, newValue)) }
+        let change = ObservedChange(oldValue, newValue)
+        guard notifyPredicate(change) else { return }
+        observers.forEach { $0.notify(change) }
     }
     
     @discardableResult
@@ -61,16 +63,28 @@ extension Observeable {
 
         value = newValue
     }
-    
+        
     @discardableResult
     public func addObserver(handler: @escaping (ObservedChange<Value>) -> ()) -> AnyObserver {
         lock.lock()
         defer { lock.unlock() }
         
-        handler(ObservedChange(nil, value))
+        let async = DispatchQueue.getSpecific(key: dispatchKey) == nil
         
-        let observer = Observer<Value> { oldValue, newValue in
-            handler(ObservedChange(oldValue, newValue))
+        func handle(_ change: ObservedChange<Value>) {
+            if async {
+                queue.async {
+                    handler(change)
+                }
+            } else {
+               handler(change)
+            }
+        }
+        
+        handle((oldValue: nil, newValue: value))
+        
+        let observer = Observer<Value> { change in
+            handle(change)
         }
         
         observers.insert(observer)

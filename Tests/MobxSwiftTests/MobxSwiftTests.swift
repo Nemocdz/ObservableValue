@@ -131,7 +131,7 @@ final class MobxSwiftTests: XCTestCase {
         success.update(true)
         XCTAssert(object.changeTime == changeTime1 + 1)
         observer.stop()
-        success.bindDiff(to: object, \.success)
+        success.dropSame().bind(to: object, \.success)
         success.update(true)
         XCTAssert(object.success)
         let changeTime0 = object.changeTime
