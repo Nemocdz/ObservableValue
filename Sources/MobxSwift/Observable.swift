@@ -89,11 +89,10 @@ extension Observeable {
         
         observers.insert(observer)
         
-        return AnyObserver(removeHandler: { [weak self, weak observer] in
-            guard let self = self, let observer = observer else { return false }
-            return self.remove(observer)
-        }, storeInHandler: { [weak observer] object in
-            guard let observer = observer else { return }
+        return AnyObserver(removeHandler: {
+            self.remove(observer)
+        }, storeInHandler: { object in
+            let object = object
             observer.isObserving = { [weak object] in
                 return object != nil
             }
