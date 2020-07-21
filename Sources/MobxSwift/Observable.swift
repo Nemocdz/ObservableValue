@@ -8,13 +8,14 @@
 import Foundation
 
 public final class Observeable<Value> {
+    typealias NotifyPredicate = ((ObservedChange<Value>) -> Bool)
+    
     private var observers: Set<Observer<Value>> = []
     private let lock = NSRecursiveLock()
     private let dispatchKey = DispatchSpecificKey<Void>()
+    private var notifyPredicates: [NotifyPredicate] = []
     
-    typealias NotifyPredicate = ((ObservedChange<Value>) -> Bool)
-    var notifyPredicates: [NotifyPredicate] = []
-    var queue: DispatchQueue = .main {
+    private var queue: DispatchQueue = .main {
         willSet {
             queue.setSpecific(key: dispatchKey, value: nil)
         }
@@ -105,5 +106,38 @@ extension Observeable {
         defer { lock.unlock() }
         
         observers.removeAll()
+    }
+    
+    public func dispatch(on queue: DispatchQueue) -> Observeable<Value> {
+        self.queue = queue
+        return self
+    }
+}
+
+extension Observeable {
+    public func drop(while predicate: @escaping (ObservedChange<Value>) -> Bool) -> Observeable<Value> {
+        notifyPredicates.append { !predicate($0) }
+        return self
+    }
+    
+    public func dropFirst() -> Observeable<Value> {
+        return drop(while: { $0.oldValue == nil })
+    }
+}
+
+extension Observeable where Value: Equatable {
+    public func dropSame() -> Observeable<Value> {
+        return drop(while: ==)
+    }
+}
+
+extension Observeable {
+    public func map<NewValue>(_ transform: @escaping (Value) -> NewValue) -> Observeable<NewValue> {
+        let o = Observeable<NewValue>(transform(value))
+        addObserver { change in
+            guard change.oldValue != nil else { return }
+            o.update(transform(change.newValue))
+        }
+        return o
     }
 }
