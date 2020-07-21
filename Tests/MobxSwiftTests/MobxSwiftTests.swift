@@ -138,6 +138,37 @@ final class MobxSwiftTests: XCTestCase {
         success.update(true)
         XCTAssert(object.changeTime == changeTime0)
     }
+    
+    func testMap() {
+        let success = Observeable<Bool>(false)
+        var successValue = 1
+        success.map { $0 ? 1 : 0 }.addObserver { change in
+            successValue = change.newValue
+        }
+        XCTAssert(successValue == 0)
+        success.update(true)
+        XCTAssert(successValue == 1)
+    }
+    
+    func testQueue() {
+        let exp = expectation(description: "queue")
+        let key = DispatchSpecificKey<Void>()
+        let success = Observeable<Bool>(false)
+        let queue = DispatchQueue(label: "com.test.queue")
+        queue.setSpecific(key: key, value: ())
+        success.dispatch(on: queue).addObserver { change in
+            XCTAssert(DispatchQueue.getSpecific(key: key) != nil)
+        }
+        queue.async {
+            success.dispatch(on: queue).addObserver { change in
+                XCTAssert(DispatchQueue.getSpecific(key: key) != nil)
+                DispatchQueue.main.async {
+                    exp.fulfill()
+                }
+            }
+        }
+        wait(for: [exp], timeout: 0.2)
+    }
 
     static var allTests = [
         ("test1", testObservableValueChanged),
