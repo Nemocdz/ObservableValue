@@ -18,23 +18,13 @@ extension Observeable {
     }
     
     public func dispatch(on queue: DispatchQueue) -> Observeable<Value> {
-        let o = Observeable(value)
-        o.queue = queue
-        addObserver { change in
-            guard change.oldValue != nil else { return }
-            o.update(change.newValue)
-        }
-        return o
+        self.queue = queue
+        return self
     }
     
     public func drop(while predicate: @escaping (ObservedChange<Value>) -> Bool) -> Observeable<Value> {
-        let o = Observeable(value)
-        o.notifyPredicate = { change in !predicate(change) }
-        addObserver { change in
-            guard change.oldValue != nil else { return }
-            o.update(change.newValue)
-        }
-        return o
+        notifyPredicates.append { !predicate($0) }
+        return self
     }
     
     public func dropFirst() -> Observeable<Value> {

@@ -13,7 +13,8 @@ public final class Observeable<Value> {
     private let lock = NSRecursiveLock()
     private let dispatchKey = DispatchSpecificKey<Void>()
     
-    var notifyPredicate: (ObservedChange<Value>) -> Bool
+    typealias NotifyPredicate = ((ObservedChange<Value>) -> Bool)
+    var notifyPredicates: [NotifyPredicate] = []
     var queue: DispatchQueue = .main {
         willSet {
             queue.setSpecific(key: dispatchKey, value: nil)
@@ -32,7 +33,6 @@ public final class Observeable<Value> {
     
     public init(_ value: Value) {
         self.value = value
-        self.notifyPredicate = { _ in true }
         queue.setSpecific(key: dispatchKey, value: ())
     }
 
@@ -43,7 +43,6 @@ public final class Observeable<Value> {
     private func notifyAll(oldValue: Value, newValue: Value) {
         observers = observers.filter { $0.isObserving() }
         let change = ObservedChange(oldValue, newValue)
-        guard notifyPredicate(change) else { return }
         observers.forEach { $0.notify(change) }
     }
     
@@ -53,6 +52,10 @@ public final class Observeable<Value> {
         defer { lock.unlock() }
         
         return observers.remove(observer) != nil
+    }
+    
+    private func canNotify(_ change: ObservedChange<Value>) -> Bool {
+        return notifyPredicates.filter{ $0(change) }.count == notifyPredicates.count
     }
 }
 
@@ -72,6 +75,7 @@ extension Observeable {
         let async = DispatchQueue.getSpecific(key: dispatchKey) == nil
         
         func handle(_ change: ObservedChange<Value>) {
+            guard canNotify(change) else { return }
             if async {
                 queue.async {
                     handler(change)
@@ -80,7 +84,7 @@ extension Observeable {
                handler(change)
             }
         }
-        
+    
         handle((oldValue: nil, newValue: value))
         
         let observer = Observer<Value> { change in
