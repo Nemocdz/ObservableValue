@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Combine
 
 public final class Observeable<Value> {
     private var observers: Set<Observer<Value>> = []
@@ -35,7 +34,7 @@ public final class Observeable<Value> {
         self.value = value
         queue.setSpecific(key: dispatchKey, value: ())
     }
-
+    
     deinit {
         queue.setSpecific(key: dispatchKey, value: nil)
     }
@@ -63,10 +62,10 @@ extension Observeable {
     public func update(_ newValue: Value) {
         lock.lock()
         defer { lock.unlock() }
-
+        
         value = newValue
     }
-        
+    
     @discardableResult
     public func addObserver(handler: @escaping (ObservedChange<Value>) -> ()) -> AnyObserver {
         lock.lock()
@@ -77,14 +76,12 @@ extension Observeable {
         func handle(_ change: ObservedChange<Value>) {
             guard canNotify(change) else { return }
             if async {
-                queue.async {
-                    handler(change)
-                }
+                queue.async { handler(change) }
             } else {
-               handler(change)
+                handler(change)
             }
         }
-    
+        
         handle((oldValue: nil, newValue: value))
         
         let observer = Observer<Value> { change in
