@@ -29,12 +29,10 @@ extension Observeable {
     // 0
     @discardableResult
     public func bind<R>(to receiver: R, handler: @escaping (R, ObservedChange<Value>) -> ()) -> Disposable where R: AnyObject {
-        let observer = addObserver { [weak receiver] change in
+        return addObserver { [weak receiver] change in
             guard let receiver = receiver else { return }
             handler(receiver, change)
-        }
-        observer.add(to: receiver)
-        return observer
+        }.add(to: receiver)
     }
     
     // -> 0

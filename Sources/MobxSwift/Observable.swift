@@ -91,17 +91,14 @@ extension Observeable {
         
         observers.insert(observer)
         
-        let disposable = Disposable(addHandler: {
+        return Disposable(addHandler: {
             let bag = $0
             observer.isObserving = { [weak bag] in
                 bag != nil
             }
         }, removeHandler: {
             self.remove(observer)
-        })
-        
-        disposable.add(to: disposable)
-        return disposable
+        }).unowned()
     }
     
     public func removeObservers() {

@@ -18,9 +18,16 @@ public class Disposable {
         add = addHandler
         remove = removeHandler
     }
-    
-    public func add(to object: AnyObject?) {
+
+    @discardableResult
+    public func add(to object: AnyObject?) -> Disposable {
         add(object)
+        return self
+    }
+    
+    @discardableResult
+    public func unowned() -> Disposable {
+        add(to: self)
     }
     
     @discardableResult
