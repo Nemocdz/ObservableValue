@@ -26,28 +26,38 @@ public final class Bindable<Value> {
 }
 
 extension Observeable {
-    // 0
-    @discardableResult
-    public func bind<R>(to receiver: R, handler: @escaping (R, ObservedChange<Value>) -> ()) -> Disposable where R: AnyObject {
+    
+    /// 语法糖 = addObserver + add(to: receiver)
+    /// - Parameters:
+    ///   - receiver: 响应者
+    ///   - handler: 执行事件
+    /// - Returns: 可移除监听者
+    @discardableResult public func bind<R>(to receiver: R, handler: @escaping (R, ObservedChange<Value>) -> ()) -> Disposable where R: AnyObject {
         return addObserver { [weak receiver] change in
             guard let receiver = receiver else { return }
             handler(receiver, change)
         }.add(to: receiver)
     }
     
-    // -> 0
-    @discardableResult
-    public func bind<R>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, Value>) -> Disposable where R: AnyObject {
+    /// 值改变时修改响应者 KeyPath
+    /// - Parameters:
+    ///   - receiver: 响应者
+    ///   - receiverKeyPath: 响应者 KeyPath
+    /// - Returns: 可移除监听者
+    @discardableResult public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value>) -> Disposable where R: AnyObject {
         return bind(to: receiver) { receiver, change in
-            receiver[keyPath: receiverKeyPath] = change.newValue
+            receiver[keyPath: keyPath] = change.newValue
         }
     }
     
-    // -> 0
-    @discardableResult
-    public func bind<R>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, Value?>) -> Disposable where R: AnyObject {
+    /// 值改变时修改响应者 KeyPath
+    /// - Parameters:
+    ///   - receiver: 响应者
+    ///   - receiverKeyPath: 响应者 KeyPath
+    /// - Returns: 可移除监听者
+    @discardableResult public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value?>) -> Disposable where R: AnyObject {
         return bind(to: receiver) { receiver, change in
-            receiver[keyPath: receiverKeyPath] = change.newValue as Value?
+            receiver[keyPath: keyPath] = change.newValue as Value?
         }
     }
 }

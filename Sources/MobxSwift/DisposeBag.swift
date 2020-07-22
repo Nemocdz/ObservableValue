@@ -14,12 +14,16 @@ public final class DisposeBag {
         bag.append(disposable)
     }
     
-    public func stop() {
+    /// 移除所有关联的监听
+    public func disposeAll() {
         bag.forEach { $0.dispose() }
     }
 }
 
 extension Disposable {
+    
+    /// 跟随 bag 生命周期移除监听
+    /// - Parameter bag: bag
     public func add(to bag: DisposeBag) {
         bag.add(self)
         add(to: bag as AnyObject?)
