@@ -8,20 +8,16 @@
 import Foundation
 
 @propertyWrapper
-public final class Bindable<Value> {
-    private let observable: Observeable<Value>
+public struct Bindable<Value> {
+    public let projectedValue: Observeable<Value>
     
     public init(wrappedValue: Value) {
-        observable = Observeable(wrappedValue)
-    }
-    
-    public var projectedValue: Observeable<Value> {
-        return observable
+        projectedValue = Observeable(wrappedValue)
     }
     
     public var wrappedValue: Value {
-        get { observable.value }
-        set { observable.update(newValue) }
+        get { projectedValue.value }
+        set { projectedValue.update(newValue) }
     }
 }
 
