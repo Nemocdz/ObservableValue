@@ -7,7 +7,7 @@
 
 import Foundation
 
-public class Disposable {
+public final class Disposable {
     typealias AddHandler = ((AnyObject?) -> ())
     typealias RemoveHandler = () -> Bool
     
