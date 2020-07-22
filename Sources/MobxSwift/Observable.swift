@@ -76,18 +76,15 @@ extension Observeable {
         lock.lock()
         defer { lock.unlock() }
         
-        let async = DispatchQueue.getSpecific(key: dispatchKey) == nil
-        
         func handle(_ change: ObservedChange<Value>) {
             guard canNotify(change) else { return }
-            if async {
+            let isAsync = DispatchQueue.getSpecific(key: self.dispatchKey) == nil
+            if isAsync {
                 queue.async { handler(change) }
             } else {
                 handler(change)
             }
         }
-        
-        handle((oldValue: nil, newValue: value))
         
         let observer = Observer<Value> { change in
             handle(change)
@@ -131,12 +128,6 @@ extension Observeable {
         notifyPredicates.append { !predicate($0) }
         return self
     }
-    
-    /// 忽略增加监听马上触发的改变
-    /// - Returns: self
-    public func dropFirst() -> Observeable<Value> {
-        return drop(while: { $0.oldValue == nil })
-    }
 }
 
 extension Observeable where Value: Equatable {
@@ -152,7 +143,6 @@ extension Observeable {
     public func map<NewValue>(_ transform: @escaping (Value) -> NewValue) -> Observeable<NewValue> {
         let observable = Observeable<NewValue>(transform(value))
         addObserver { change in
-            guard change.oldValue != nil else { return }
             observable.update(transform(change.newValue))
         }.add(to: observable)
         return observable

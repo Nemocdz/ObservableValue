@@ -28,14 +28,16 @@ public final class Bindable<Value> {
 extension Observeable {
     
     /// 语法糖 = addObserver + add(to: receiver)
+    /// 马上执行一次事件
     /// - Parameters:
     ///   - receiver: 响应者
     ///   - handler: 执行事件
     /// - Returns: 可移除监听者
-    @discardableResult public func bind<R>(to receiver: R, handler: @escaping (R, ObservedChange<Value>) -> ()) -> Disposable where R: AnyObject {
+    @discardableResult public func bind<R>(to receiver: R, handler: @escaping (R, Value) -> ()) -> Disposable where R: AnyObject {
+        handler(receiver, value)
         return addObserver { [weak receiver] change in
             guard let receiver = receiver else { return }
-            handler(receiver, change)
+            handler(receiver, change.newValue)
         }.add(to: receiver)
     }
     
@@ -45,8 +47,8 @@ extension Observeable {
     ///   - receiverKeyPath: 响应者 KeyPath
     /// - Returns: 可移除监听者
     @discardableResult public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value>) -> Disposable where R: AnyObject {
-        return bind(to: receiver) { receiver, change in
-            receiver[keyPath: keyPath] = change.newValue
+        return bind(to: receiver) { receiver, newValue in
+            receiver[keyPath: keyPath] = newValue
         }
     }
     
@@ -56,8 +58,8 @@ extension Observeable {
     ///   - receiverKeyPath: 响应者 KeyPath
     /// - Returns: 可移除监听者
     @discardableResult public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value?>) -> Disposable where R: AnyObject {
-        return bind(to: receiver) { receiver, change in
-            receiver[keyPath: keyPath] = change.newValue as Value?
+        return bind(to: receiver) { receiver, newValue in
+            receiver[keyPath: keyPath] = newValue as Value?
         }
     }
 }

@@ -9,6 +9,8 @@ final class MobxSwiftTests: XCTestCase {
         let a = success.addObserver { change in
             sucesssValue = change.newValue
         }
+        XCTAssert(!sucesssValue)
+        success.update(true)
         XCTAssert(sucesssValue)
         success.update(false)
         XCTAssert(!sucesssValue)
@@ -141,11 +143,10 @@ final class MobxSwiftTests: XCTestCase {
     
     func testMap() {
         let success = Observeable<Bool>(false)
-        var successValue = 1
+        var successValue = 0
         let a = success.map { $0 ? 1 : 0 }.addObserver { change in
             successValue = change.newValue
         }
-        XCTAssert(successValue == 0)
         success.update(true)
         XCTAssert(successValue == 1)
     }
@@ -156,16 +157,18 @@ final class MobxSwiftTests: XCTestCase {
         let success = Observeable<Bool>(false)
         let queue = DispatchQueue(label: "com.test.queue")
         queue.setSpecific(key: key, value: ())
-        success.dispatch(on: queue).addObserver { change in
+        let a = success.dispatch(on: queue).addObserver { change in
             XCTAssert(DispatchQueue.getSpecific(key: key) != nil)
         }
+        success.update(true)
         queue.async {
-            success.dispatch(on: queue).addObserver { change in
+            let b = success.dispatch(on: queue).addObserver { change in
                 XCTAssert(DispatchQueue.getSpecific(key: key) != nil)
                 DispatchQueue.main.async {
                     exp.fulfill()
                 }
             }
+            success.update(true)
         }
         wait(for: [exp], timeout: 0.2)
     }

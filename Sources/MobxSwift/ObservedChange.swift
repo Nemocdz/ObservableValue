@@ -7,4 +7,4 @@
 
 import Foundation
 
-public typealias ObservedChange<Value> = (oldValue: Value?, newValue: Value)
+public typealias ObservedChange<Value> = (oldValue: Value, newValue: Value)
