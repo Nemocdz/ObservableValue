@@ -8,20 +8,20 @@
 import Foundation
 
 public final class DisposeBag {
-    private var observers = [AnyObserver]()
+    private var bag = [Disposable]()
     
-    func addObserver(_ observer: AnyObserver) {
-        observers.append(observer)
+    func add(_ disposable: Disposable) {
+        bag.append(disposable)
     }
     
     public func stop() {
-        observers.forEach { $0.stop() }
+        bag.forEach { $0.dispose() }
     }
 }
 
-extension AnyObserver {
-    public func store(in bag: DisposeBag) {
-        bag.addObserver(self)
-        store(in: bag as AnyObject?)
+extension Disposable {
+    public func add(to bag: DisposeBag) {
+        bag.add(self)
+        add(to: bag as AnyObject?)
     }
 }

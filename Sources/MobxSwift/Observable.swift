@@ -68,7 +68,7 @@ extension Observeable {
     }
     
     @discardableResult
-    public func addObserver(handler: @escaping (ObservedChange<Value>) -> ()) -> AnyObserver {
+    public func addObserver(handler: @escaping (ObservedChange<Value>) -> ()) -> Disposable {
         lock.lock()
         defer { lock.unlock() }
         
@@ -91,14 +91,17 @@ extension Observeable {
         
         observers.insert(observer)
         
-        return AnyObserver(removeHandler: {
-            self.remove(observer)
-        }, storeInHandler: { object in
-            let object = object
-            observer.isObserving = { [weak object] in
-                return object != nil
+        let disposable = Disposable(addHandler: {
+            let bag = $0
+            observer.isObserving = { [weak bag] in
+                bag != nil
             }
+        }, removeHandler: {
+            self.remove(observer)
         })
+        
+        disposable.add(to: disposable)
+        return disposable
     }
     
     public func removeObservers() {
@@ -133,11 +136,11 @@ extension Observeable where Value: Equatable {
 
 extension Observeable {
     public func map<NewValue>(_ transform: @escaping (Value) -> NewValue) -> Observeable<NewValue> {
-        let o = Observeable<NewValue>(transform(value))
+        let observable = Observeable<NewValue>(transform(value))
         addObserver { change in
             guard change.oldValue != nil else { return }
-            o.update(transform(change.newValue))
-        }
-        return o
+            observable.update(transform(change.newValue))
+        }.add(to: observable)
+        return observable
     }
 }

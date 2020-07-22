@@ -6,7 +6,7 @@ final class MobxSwiftTests: XCTestCase {
     func testObservableValueChanged() {
         let success = Observeable(true)
         var sucesssValue = false
-        success.addObserver { change in
+        let a = success.addObserver { change in
             sucesssValue = change.newValue
         }
         XCTAssert(sucesssValue)
@@ -23,7 +23,7 @@ final class MobxSwiftTests: XCTestCase {
         
         let success = Observeable<Bool>(false)
         success.addObserver { change in
-        }.store(in: object)
+        }.add(to: object)
         
         object = nil
         wait(for: [exp], timeout: 1)
@@ -37,7 +37,7 @@ final class MobxSwiftTests: XCTestCase {
         
         success.addObserver(handler: { change in
             successValue = change.newValue
-        }).store(in: bag)
+        }).add(to: bag)
         
         bag.stop()
         
@@ -53,7 +53,7 @@ final class MobxSwiftTests: XCTestCase {
         var object: AnyObject? = NSObject()
         success.addObserver(handler: { change in
             successValue = change.newValue
-        }).store(in: object)
+        }).add(to: object)
         object = nil
         
         success.update(true)
@@ -69,8 +69,8 @@ final class MobxSwiftTests: XCTestCase {
         let a = success.addObserver { change in
             successValue = change.newValue
         }
-        a.store(in: object)
-        a.store(in: object2)
+        a.add(to: object)
+        a.add(to: object2)
         object = nil
         
         success.update(true)
@@ -87,7 +87,7 @@ final class MobxSwiftTests: XCTestCase {
         let o = success.addObserver(handler: { change in
             successValue = change.newValue
         })
-        o.stop()
+        o.dispose()
         
         success.update(true)
         XCTAssert(!successValue)
@@ -130,7 +130,7 @@ final class MobxSwiftTests: XCTestCase {
         let changeTime1 = object.changeTime
         success.update(true)
         XCTAssert(object.changeTime == changeTime1 + 1)
-        observer.stop()
+        observer.dispose()
         success.dropSame().bind(to: object, \.success)
         success.update(true)
         XCTAssert(object.success)
@@ -142,7 +142,7 @@ final class MobxSwiftTests: XCTestCase {
     func testMap() {
         let success = Observeable<Bool>(false)
         var successValue = 1
-        success.map { $0 ? 1 : 0 }.addObserver { change in
+        let a = success.map { $0 ? 1 : 0 }.addObserver { change in
             successValue = change.newValue
         }
         XCTAssert(successValue == 0)

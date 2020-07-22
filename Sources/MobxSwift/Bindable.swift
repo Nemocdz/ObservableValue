@@ -9,7 +9,7 @@ import Foundation
 
 @propertyWrapper
 public final class Bindable<Value> {
-    let observable: Observeable<Value>
+    private let observable: Observeable<Value>
     
     public init(wrappedValue: Value) {
         observable = Observeable(wrappedValue)
@@ -28,18 +28,18 @@ public final class Bindable<Value> {
 extension Observeable {
     // 0
     @discardableResult
-    public func bind<R>(to receiver: R, handler: @escaping (R, ObservedChange<Value>) -> ()) -> AnyObserver where R: AnyObject {
+    public func bind<R>(to receiver: R, handler: @escaping (R, ObservedChange<Value>) -> ()) -> Disposable where R: AnyObject {
         let observer = addObserver { [weak receiver] change in
             guard let receiver = receiver else { return }
             handler(receiver, change)
         }
-        observer.store(in: receiver)
+        observer.add(to: receiver)
         return observer
     }
     
     // -> 0
     @discardableResult
-    public func bind<R>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, Value>) -> AnyObserver where R: AnyObject {
+    public func bind<R>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, Value>) -> Disposable where R: AnyObject {
         return bind(to: receiver) { receiver, change in
             receiver[keyPath: receiverKeyPath] = change.newValue
         }
@@ -47,7 +47,7 @@ extension Observeable {
     
     // -> 0
     @discardableResult
-    public func bind<R>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, Value?>) -> AnyObserver where R: AnyObject {
+    public func bind<R>(to receiver: R, _ receiverKeyPath: ReferenceWritableKeyPath<R, Value?>) -> Disposable where R: AnyObject {
         return bind(to: receiver) { receiver, change in
             receiver[keyPath: receiverKeyPath] = change.newValue as Value?
         }
