@@ -38,7 +38,7 @@ extension Observeable {
     }
     
     /// 值改变时修改响应者 KeyPath
-    /// Optional -> Optional || Wrapped -> Wrapped
+    /// Optional -> Optional / Wrapped -> Wrapped
     /// - Parameters:
     ///   - receiver: 响应者
     ///   - receiverKeyPath: 响应者 KeyPath

@@ -30,7 +30,7 @@ public final class Disposable {
     /// 改变为跟随自身生命周期移除监听
     /// - Returns: self
     @discardableResult public func unowned() -> Disposable {
-        add(to: self)
+        return add(to: self)
     }
     
     /// 手动移除监听
