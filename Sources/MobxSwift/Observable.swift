@@ -38,8 +38,7 @@ public final class Observeable<Value> {
     
     private func notifyAll(oldValue: Value, newValue: Value) {
         observers = observers.filter { $0.isObserving() }
-        let change = ObservedChange(oldValue, newValue)
-        observers.forEach { $0.notify(change) }
+        observers.forEach { $0.notify((oldValue, newValue)) }
     }
     
     @discardableResult private func remove(_ observer: Observer<Value>) -> Bool {
