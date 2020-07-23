@@ -37,7 +37,7 @@ final class ObservableValueSwiftTests: XCTestCase {
         var successValue = false
         let bag = DisposeBag()
         
-        success.addObserver(handler: { change in
+        success.addObserver(receiveHandler: { change in
             successValue = change.newValue
         }).add(to: bag)
         
@@ -53,7 +53,7 @@ final class ObservableValueSwiftTests: XCTestCase {
         var successValue = false
         
         var object: AnyObject? = NSObject()
-        success.addObserver(handler: { change in
+        success.addObserver(receiveHandler: { change in
             successValue = change.newValue
         }).add(to: object)
         object = nil
@@ -86,7 +86,7 @@ final class ObservableValueSwiftTests: XCTestCase {
     func testObserverRemove3() {
         let success = Observable<Bool>(false)
         var successValue = false
-        let o = success.addObserver(handler: { change in
+        let o = success.addObserver(receiveHandler: { change in
             successValue = change.newValue
         })
         o.dispose()
@@ -111,7 +111,6 @@ final class ObservableValueSwiftTests: XCTestCase {
         
         wait(for: [exp], timeout: 1.1)
     }
-    
     
     func testObserverRemove5() {
         let success = Observable<Bool>(false)

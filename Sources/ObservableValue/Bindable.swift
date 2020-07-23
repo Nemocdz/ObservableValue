@@ -8,7 +8,7 @@
 import Foundation
 
 @propertyWrapper
-public struct Bindable<Value> {
+public class Bindable<Value> {
     public let projectedValue: Observable<Value>
     
     public init(wrappedValue: Value) {
@@ -29,7 +29,8 @@ extension Observable {
     ///   - receiver: 响应者
     ///   - handler: 执行事件
     /// - Returns: 可移除监听者
-    @discardableResult public func bind<R>(to receiver: R, handler: @escaping (R, Value) -> ()) -> Disposable where R: AnyObject {
+    @discardableResult
+    public func bind<R>(to receiver: R, handler: @escaping (R, Value) -> ()) -> Disposable where R: AnyObject {
         handler(receiver, value)
         return addObserver { [weak receiver] change in
             guard let receiver = receiver else { return }
@@ -43,7 +44,8 @@ extension Observable {
     ///   - receiver: 响应者
     ///   - receiverKeyPath: 响应者 KeyPath
     /// - Returns: 可移除监听者
-    @discardableResult public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value>) -> Disposable where R: AnyObject {
+    @discardableResult
+    public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value>) -> Disposable where R: AnyObject {
         return bind(to: receiver) { receiver, newValue in
             receiver[keyPath: keyPath] = newValue
         }
@@ -55,14 +57,15 @@ extension Observable {
     ///   - receiver: 响应者
     ///   - receiverKeyPath: 响应者 KeyPath
     /// - Returns: 可移除监听者
-    @discardableResult public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value?>) -> Disposable where R: AnyObject {
+    @discardableResult
+    public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value?>) -> Disposable where R: AnyObject {
         return bind(to: receiver) { receiver, newValue in
             receiver[keyPath: keyPath] = newValue as Value?
         }
     }
 }
 
-extension Observable where Value: ObservableOptionalValue {
+extension Observable where Value: ObservableOptional {
     
     /// 值改变时修改响应者 KeyPath
     /// Optional -> Wrapped
@@ -70,10 +73,11 @@ extension Observable where Value: ObservableOptionalValue {
     ///   - receiver: 响应者
     ///   - receiverKeyPath: 响应者 KeyPath
     /// - Returns: 可移除监听者
-    @discardableResult public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value.Wrapped>) -> Disposable where R: AnyObject {
+    @discardableResult
+    public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value.Wrapped>) -> Disposable where R: AnyObject {
         return bind(to: receiver) { receiver, newValue in
-            guard !newValue.isNil else { return }
-            receiver[keyPath: keyPath] = newValue.wrapped
+            guard !newValue._isNil else { return }
+            receiver[keyPath: keyPath] = newValue._wrapped
         }
     }
 }

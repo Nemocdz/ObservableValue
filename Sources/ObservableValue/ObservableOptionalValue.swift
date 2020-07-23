@@ -7,13 +7,16 @@
 
 import Foundation
 
-public protocol ObservableOptionalValue {
+public protocol ObservableOptional {
     associatedtype Wrapped
-    var wrapped: Wrapped { get }
-    var isNil: Bool { get }
+    
+    var _wrapped: Wrapped { get }
+    var _isNil: Bool { get }
 }
 
-extension Optional: ObservableOptionalValue {
-    public var wrapped: Wrapped { unsafelyUnwrapped }
-    public var isNil: Bool { self == nil }
+extension Optional: ObservableOptional {
+    public var _wrapped: Wrapped { unsafelyUnwrapped }
+    public var _isNil: Bool { self == nil }
 }
+
+

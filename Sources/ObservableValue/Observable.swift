@@ -41,7 +41,8 @@ public final class Observable<Value> {
         observers.forEach { $0.receive(change) }
     }
     
-    @discardableResult private func remove(_ observer: Observer<Value>) -> Bool {
+    @discardableResult
+    private func remove(_ observer: Observer<Value>) -> Bool {
         lock.lock()
         defer { lock.unlock() }
         
@@ -64,10 +65,11 @@ extension Observable {
         value = newValue
     }
     
-    /// 增加监听
-    /// - Parameter handler: 执行事件
-    /// - Returns: 可移除监听者
-    @discardableResult public func addObserver(handler: @escaping (ObservedChange<Value>) -> ()) -> Disposable {
+    /// 增加观察者
+    /// - Parameter receiveHandler: 接收改变时的处理
+    /// - Returns: 可移除观察者
+    @discardableResult
+    public func addObserver(receiveHandler: @escaping (ObservedChange<Value>) -> ()) -> Disposable {
         lock.lock()
         defer { lock.unlock() }
         
@@ -75,9 +77,9 @@ extension Observable {
             guard canReceive(change) else { return }
             let isAsync = DispatchQueue.getSpecific(key: queueKey) == nil
             if isAsync {
-                receiveQueue.async { handler(change) }
+                receiveQueue.async { receiveHandler(change) }
             } else {
-                handler(change)
+                receiveHandler(change)
             }
         }
         
@@ -97,7 +99,7 @@ extension Observable {
         }).unowned()
     }
     
-    /// 移除所有监听者
+    /// 移除所有观察者
     public func removeObservers() {
         lock.lock()
         defer { lock.unlock() }
@@ -117,7 +119,7 @@ extension Observable {
 extension Observable {
     
     /// 增加忽略改变的情况
-    /// - Parameter predicate: 忽略情况
+    /// - Parameter predicate: 是否忽略
     /// - Returns: self
     public func drop(while predicate: @escaping (ObservedChange<Value>) -> Bool) -> Observable<Value> {
         changePredicates.append { !predicate($0) }
@@ -135,6 +137,10 @@ extension Observable where Value: Equatable {
 }
 
 extension Observable {
+    
+    /// 返回新类型的可观察者
+    /// - Parameter transform: 转换
+    /// - Returns: 新的可观察者
     public func map<NewValue>(_ transform: @escaping (Value) -> NewValue) -> Observable<NewValue> {
         let observable = Observable<NewValue>(transform(value))
         addObserver {
@@ -144,12 +150,16 @@ extension Observable {
     }
 }
 
-extension Observable where Value: ObservableOptionalValue {
+extension Observable where Value: ObservableOptional {
+    
+    /// 忽略 nil 的情况
+    /// - Parameter value: 初始化值
+    /// - Returns: 新的可观察者
     public func dropNil(value: Value.Wrapped) -> Observable<Value.Wrapped> {
         let observable = Observable<Value.Wrapped>(value)
         addObserver {
-            guard !$0.newValue.isNil else { return }
-            observable.update($0.newValue.wrapped)
+            guard !$0.newValue._isNil else { return }
+            observable.update($0.newValue._wrapped)
         }.add(to: observable)
         return observable
     }
