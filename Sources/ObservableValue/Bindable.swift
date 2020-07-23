@@ -21,20 +21,21 @@ public class Bindable<Value> {
     }
 }
 
+// MARK: Bind
 extension Observable {
     
     /// 语法糖 = addObserver + add(to: receiver)
     /// 马上执行一次事件
     /// - Parameters:
     ///   - receiver: 响应者
-    ///   - handler: 执行事件
+    ///   - receiveHandler: 接收新值时的处理
     /// - Returns: 可移除监听者
     @discardableResult
-    public func bind<R>(to receiver: R, handler: @escaping (R, Value) -> ()) -> Disposable where R: AnyObject {
-        handler(receiver, value)
+    public func bind<R>(to receiver: R, receiveHandler: @escaping (R, Value) -> ()) -> Disposable where R: AnyObject {
+        receiveHandler(receiver, value)
         return addObserver { [weak receiver] change in
             guard let receiver = receiver else { return }
-            handler(receiver, change.newValue)
+            receiveHandler(receiver, change.newValue)
         }.add(to: receiver)
     }
     

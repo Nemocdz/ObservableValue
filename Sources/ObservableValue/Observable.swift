@@ -21,10 +21,7 @@ public final class Observable<Value> {
     }
     
     public private(set) var value: Value {
-        didSet {
-            let newValue = value
-            receive(change: (oldValue, newValue))
-        }
+        didSet { receive(change: (oldValue, value)) }
     }
     
     public init(_ value: Value) {
@@ -35,7 +32,10 @@ public final class Observable<Value> {
     deinit {
         receiveQueue.setSpecific(key: queueKey, value: nil)
     }
-    
+}
+
+// MARK: - Private
+extension Observable {
     private func receive(change: ObservedChange<Value>) {
         observers = observers.filter { $0.isObserving() }
         observers.forEach { $0.receive(change) }
@@ -54,6 +54,7 @@ public final class Observable<Value> {
     }
 }
 
+// MARK: - Pulic
 extension Observable {
     
     /// 设置新值
@@ -116,6 +117,22 @@ extension Observable {
     }
 }
 
+// MARK: - Map
+extension Observable {
+    
+    /// 返回新类型的可观察者
+    /// - Parameter transform: 转换
+    /// - Returns: 新的可观察者
+    public func map<NewValue>(_ transform: @escaping (Value) -> NewValue) -> Observable<NewValue> {
+        let observable = Observable<NewValue>(transform(value))
+        addObserver {
+            observable.update(transform($0.newValue))
+        }.add(to: observable)
+        return observable
+    }
+}
+
+// MARK: - Drop
 extension Observable {
     
     /// 增加忽略改变的情况
@@ -133,20 +150,6 @@ extension Observable where Value: Equatable {
     /// - Returns: self
     public func dropSame() -> Observable<Value> {
         return drop(while: ==)
-    }
-}
-
-extension Observable {
-    
-    /// 返回新类型的可观察者
-    /// - Parameter transform: 转换
-    /// - Returns: 新的可观察者
-    public func map<NewValue>(_ transform: @escaping (Value) -> NewValue) -> Observable<NewValue> {
-        let observable = Observable<NewValue>(transform(value))
-        addObserver {
-            observable.update(transform($0.newValue))
-        }.add(to: observable)
-        return observable
     }
 }
 

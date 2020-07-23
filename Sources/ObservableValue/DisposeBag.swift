@@ -18,8 +18,4 @@ public final class DisposeBag {
     public func disposeAll() {
         bag.forEach { $0.dispose() }
     }
-    
-    deinit {
-        disposeAll()
-    }
 }
