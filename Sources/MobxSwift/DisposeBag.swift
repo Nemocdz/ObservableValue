@@ -24,8 +24,8 @@ extension Disposable {
     
     /// 跟随 bag 生命周期移除监听
     /// - Parameter bag: bag
-    public func add(to bag: DisposeBag) {
+    @discardableResult public func add(to bag: DisposeBag) -> Disposable {
         bag.add(self)
-        add(to: bag as AnyObject?)
+        return add(to: bag as AnyObject?)
     }
 }
