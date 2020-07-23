@@ -9,10 +9,10 @@ import Foundation
 
 @propertyWrapper
 public struct Bindable<Value> {
-    public let projectedValue: Observeable<Value>
+    public let projectedValue: Observable<Value>
     
     public init(wrappedValue: Value) {
-        projectedValue = Observeable(wrappedValue)
+        projectedValue = Observable(wrappedValue)
     }
     
     public var wrappedValue: Value {
@@ -21,7 +21,7 @@ public struct Bindable<Value> {
     }
 }
 
-extension Observeable {
+extension Observable {
     
     /// 语法糖 = addObserver + add(to: receiver)
     /// 马上执行一次事件
@@ -62,7 +62,7 @@ extension Observeable {
     }
 }
 
-extension Observeable where Value: ObservableOptionalValue {
+extension Observable where Value: ObservableOptionalValue {
     
     /// 值改变时修改响应者 KeyPath
     /// Optional -> Wrapped

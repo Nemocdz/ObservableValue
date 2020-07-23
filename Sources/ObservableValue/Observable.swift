@@ -7,7 +7,7 @@
 
 import Foundation
 
-public final class Observeable<Value> {
+public final class Observable<Value> {
     typealias NotifyPredicate = ((ObservedChange<Value>) -> Bool)
     
     private var observers: Set<Observer<Value>> = []
@@ -53,7 +53,7 @@ public final class Observeable<Value> {
     }
 }
 
-extension Observeable {
+extension Observable {
     
     /// 设置新值
     /// - Parameter newValue: 新值
@@ -108,35 +108,35 @@ extension Observeable {
     /// 改变执行事件的队列
     /// - Parameter queue: 目标队列
     /// - Returns: self
-    public func dispatch(on queue: DispatchQueue) -> Observeable<Value> {
+    public func dispatch(on queue: DispatchQueue) -> Observable<Value> {
         self.queue = queue
         return self
     }
 }
 
-extension Observeable {
+extension Observable {
     
     /// 增加忽略改变的情况
     /// - Parameter predicate: 忽略情况
     /// - Returns: self
-    public func drop(while predicate: @escaping (ObservedChange<Value>) -> Bool) -> Observeable<Value> {
+    public func drop(while predicate: @escaping (ObservedChange<Value>) -> Bool) -> Observable<Value> {
         notifyPredicates.append { !predicate($0) }
         return self
     }
 }
 
-extension Observeable where Value: Equatable {
+extension Observable where Value: Equatable {
     
     /// 忽略改变新旧值相等的情况
     /// - Returns: self
-    public func dropSame() -> Observeable<Value> {
+    public func dropSame() -> Observable<Value> {
         return drop(while: ==)
     }
 }
 
-extension Observeable {
-    public func map<NewValue>(_ transform: @escaping (Value) -> NewValue) -> Observeable<NewValue> {
-        let observable = Observeable<NewValue>(transform(value))
+extension Observable {
+    public func map<NewValue>(_ transform: @escaping (Value) -> NewValue) -> Observable<NewValue> {
+        let observable = Observable<NewValue>(transform(value))
         addObserver {
             observable.update(transform($0.newValue))
         }.add(to: observable)
@@ -144,9 +144,9 @@ extension Observeable {
     }
 }
 
-extension Observeable where Value: ObservableOptionalValue {
-    public func dropNil(value: Value.Wrapped) -> Observeable<Value.Wrapped> {
-        let observable = Observeable<Value.Wrapped>(value)
+extension Observable where Value: ObservableOptionalValue {
+    public func dropNil(value: Value.Wrapped) -> Observable<Value.Wrapped> {
+        let observable = Observable<Value.Wrapped>(value)
         addObserver {
             guard !$0.newValue.isNil else { return }
             observable.update($0.newValue.wrapped)

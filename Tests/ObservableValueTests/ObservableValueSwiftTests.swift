@@ -1,10 +1,10 @@
 import XCTest
-@testable import MobxSwift
+@testable import ObservableValue
 
-final class MobxSwiftTests: XCTestCase {
+final class ObservableValueSwiftTests: XCTestCase {
     /// add 接口
     func testObservableValueChanged() {
-        let success = Observeable(true)
+        let success = Observable(true)
         var sucesssValue = false
         let a = success.addObserver { change in
             sucesssValue = change.newValue
@@ -23,7 +23,7 @@ final class MobxSwiftTests: XCTestCase {
             exp.fulfill()
         }
         
-        let success = Observeable<Bool>(false)
+        let success = Observable<Bool>(false)
         success.addObserver { change in
         }.add(to: object)
         
@@ -33,7 +33,7 @@ final class MobxSwiftTests: XCTestCase {
     
     /// DisposeBag
     func testObserverRemove0() {
-        let success = Observeable<Bool>(false)
+        let success = Observable<Bool>(false)
         var successValue = false
         let bag = DisposeBag()
         
@@ -49,7 +49,7 @@ final class MobxSwiftTests: XCTestCase {
         
     /// store 在其他 object 中
     func testObserverRemove1() {
-        let success = Observeable<Bool>(false)
+        let success = Observable<Bool>(false)
         var successValue = false
         
         var object: AnyObject? = NSObject()
@@ -64,7 +64,7 @@ final class MobxSwiftTests: XCTestCase {
     
     /// 覆盖 store
     func testObserverRemove2() {
-        let success = Observeable<Bool>(true)
+        let success = Observable<Bool>(true)
         var successValue = false
         var object: AnyObject? = NSObject()
         var object2: AnyObject? = NSObject()
@@ -84,7 +84,7 @@ final class MobxSwiftTests: XCTestCase {
     
     /// 手动 remove
     func testObserverRemove3() {
-        let success = Observeable<Bool>(false)
+        let success = Observable<Bool>(false)
         var successValue = false
         let o = success.addObserver(handler: { change in
             successValue = change.newValue
@@ -99,7 +99,7 @@ final class MobxSwiftTests: XCTestCase {
     func testObserverRemove4() {
         let exp = expectation(description: "remove_4")
         
-        var success: Observeable<Bool>? = Observeable<Bool>(false)
+        var success: Observable<Bool>? = Observable<Bool>(false)
         weak var a = success!.addObserver { change in
         }
         success = nil
@@ -114,7 +114,7 @@ final class MobxSwiftTests: XCTestCase {
     
     
     func testObserverRemove5() {
-        let success = Observeable<Bool>(false)
+        let success = Observable<Bool>(false)
         var successValue = false
         success.addObserver { change in
             successValue = change.newValue
@@ -125,7 +125,7 @@ final class MobxSwiftTests: XCTestCase {
     }
     
     func testBind() {
-        let success = Observeable<Bool>(false)
+        let success = Observable<Bool>(false)
         let object = ObserverObject()
         let observer = success.bind(to: object, at: \.success)
         success.update(true)
@@ -142,7 +142,7 @@ final class MobxSwiftTests: XCTestCase {
     }
     
     func testMap() {
-        let success = Observeable<Bool>(false)
+        let success = Observable<Bool>(false)
         var successValue = 0
         let a = success.map { $0 ? 1 : 0 }.addObserver { change in
             successValue = change.newValue
@@ -154,7 +154,7 @@ final class MobxSwiftTests: XCTestCase {
     func testQueue() {
         let exp = expectation(description: "queue")
         let key = DispatchSpecificKey<Void>()
-        let success = Observeable<Bool>(false)
+        let success = Observable<Bool>(false)
         let queue = DispatchQueue(label: "com.test.queue")
         queue.setSpecific(key: key, value: ())
         let a = success.dispatch(on: queue).addObserver { change in
@@ -174,7 +174,7 @@ final class MobxSwiftTests: XCTestCase {
     }
     
     func testDropNil() {
-        let success = Observeable<Bool?>(false)
+        let success = Observable<Bool?>(false)
         var successValue: Bool? = nil
         let a = success.dropNil(value: false).addObserver { change in
             successValue = change.newValue
@@ -189,8 +189,8 @@ final class MobxSwiftTests: XCTestCase {
     }
     
     func testBind2() {
-        let o1 = Observeable<Int>(1)
-        let o2 = Observeable<Int?>(2)
+        let o1 = Observable<Int>(1)
+        let o2 = Observable<Int?>(2)
         let o = ObserverObject()
         /// wrapped to wrapped
         o1.bind(to: o, at: \.value)
@@ -217,7 +217,7 @@ final class MobxSwiftTests: XCTestCase {
     ]
 }
 
-extension MobxSwiftTests {
+extension ObservableValueSwiftTests {
     class RetainCycle {
         let deinitHandler: () -> ()
         
