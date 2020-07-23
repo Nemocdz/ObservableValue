@@ -81,9 +81,9 @@ extension Observable {
             }
         }
         
-        let observer = Observer<Value> { change in
-            receive(change)
-        }
+        let observer = Observer<Value> (receiveHandler: {
+            receive($0)
+        })
         
         observers.insert(observer)
         
