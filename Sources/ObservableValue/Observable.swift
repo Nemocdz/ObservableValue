@@ -8,37 +8,37 @@
 import Foundation
 
 public final class Observable<Value> {
-    typealias NotifyPredicate = ((ObservedChange<Value>) -> Bool)
+    typealias ChangePredicate = ((ObservedChange<Value>) -> Bool)
     
     private var observers: Set<Observer<Value>> = []
     private let lock = NSRecursiveLock()
     private let queueKey = DispatchSpecificKey<Void>()
-    private var notifyPredicates: [NotifyPredicate] = []
+    private var changePredicates: [ChangePredicate] = []
     
-    private var notifyQueue: DispatchQueue = .main {
-        willSet { notifyQueue.setSpecific(key: queueKey, value: nil) }
-        didSet { notifyQueue.setSpecific(key: queueKey, value: ()) }
+    private var receiveQueue: DispatchQueue = .main {
+        willSet { receiveQueue.setSpecific(key: queueKey, value: nil) }
+        didSet { receiveQueue.setSpecific(key: queueKey, value: ()) }
     }
     
     public private(set) var value: Value {
         didSet {
             let newValue = value
-            notifyAll(oldValue: oldValue, newValue: newValue)
+            receive(change: (oldValue, newValue))
         }
     }
     
     public init(_ value: Value) {
         self.value = value
-        notifyQueue.setSpecific(key: queueKey, value: ())
+        receiveQueue.setSpecific(key: queueKey, value: ())
     }
     
     deinit {
-        notifyQueue.setSpecific(key: queueKey, value: nil)
+        receiveQueue.setSpecific(key: queueKey, value: nil)
     }
     
-    private func notifyAll(oldValue: Value, newValue: Value) {
+    private func receive(change: ObservedChange<Value>) {
         observers = observers.filter { $0.isObserving() }
-        observers.forEach { $0.notify((oldValue, newValue)) }
+        observers.forEach { $0.receive(change) }
     }
     
     @discardableResult private func remove(_ observer: Observer<Value>) -> Bool {
@@ -48,8 +48,8 @@ public final class Observable<Value> {
         return observers.remove(observer) != nil
     }
     
-    private func canNotify(_ change: ObservedChange<Value>) -> Bool {
-        return notifyPredicates.filter{ $0(change) }.count == notifyPredicates.count
+    private func canReceive(_ change: ObservedChange<Value>) -> Bool {
+        return changePredicates.filter{ $0(change) }.count == changePredicates.count
     }
 }
 
@@ -71,18 +71,18 @@ extension Observable {
         lock.lock()
         defer { lock.unlock() }
         
-        func handle(_ change: ObservedChange<Value>) {
-            guard canNotify(change) else { return }
+        func receive(_ change: ObservedChange<Value>) {
+            guard canReceive(change) else { return }
             let isAsync = DispatchQueue.getSpecific(key: queueKey) == nil
             if isAsync {
-                notifyQueue.async { handler(change) }
+                receiveQueue.async { handler(change) }
             } else {
                 handler(change)
             }
         }
         
         let observer = Observer<Value> { change in
-            handle(change)
+            receive(change)
         }
         
         observers.insert(observer)
@@ -109,7 +109,7 @@ extension Observable {
     /// - Parameter queue: 目标队列
     /// - Returns: self
     public func dispatch(on queue: DispatchQueue) -> Observable<Value> {
-        self.notifyQueue = queue
+        receiveQueue = queue
         return self
     }
 }
@@ -120,7 +120,7 @@ extension Observable {
     /// - Parameter predicate: 忽略情况
     /// - Returns: self
     public func drop(while predicate: @escaping (ObservedChange<Value>) -> Bool) -> Observable<Value> {
-        notifyPredicates.append { !predicate($0) }
+        changePredicates.append { !predicate($0) }
         return self
     }
 }

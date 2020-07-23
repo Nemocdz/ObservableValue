@@ -8,13 +8,13 @@
 import Foundation
 
 final class Observer<Value> {
-    typealias NotifyHandler = (ObservedChange<Value>) -> ()
+    typealias ReceiveHandler = (ObservedChange<Value>) -> ()
     
-    let notify: NotifyHandler
+    let receive: ReceiveHandler
     var isObserving: () -> Bool
     
-    init(notifyHandler: @escaping NotifyHandler) {
-        notify = notifyHandler
+    init(receiveHandler: @escaping ReceiveHandler) {
+        receive = receiveHandler
         isObserving = { true }
     }
 }
