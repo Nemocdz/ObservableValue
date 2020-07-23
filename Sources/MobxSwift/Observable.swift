@@ -16,12 +16,8 @@ public final class Observeable<Value> {
     private var notifyPredicates: [NotifyPredicate] = []
     
     private var queue: DispatchQueue = .main {
-        willSet {
-            queue.setSpecific(key: dispatchKey, value: nil)
-        }
-        didSet {
-            queue.setSpecific(key: dispatchKey, value: ())
-        }
+        willSet { queue.setSpecific(key: dispatchKey, value: nil) }
+        didSet { queue.setSpecific(key: dispatchKey, value: ()) }
     }
     
     public private(set) var value: Value {
