@@ -142,8 +142,19 @@ extension Observeable where Value: Equatable {
 extension Observeable {
     public func map<NewValue>(_ transform: @escaping (Value) -> NewValue) -> Observeable<NewValue> {
         let observable = Observeable<NewValue>(transform(value))
-        addObserver { change in
-            observable.update(transform(change.newValue))
+        addObserver {
+            observable.update(transform($0.newValue))
+        }.add(to: observable)
+        return observable
+    }
+}
+
+extension Observeable where Value: ObservableOptionalValue {
+    public func dropNil(value: Value.Wrapped) -> Observeable<Value.Wrapped> {
+        let observable = Observeable<Value.Wrapped>(value)
+        addObserver {
+            guard !$0.newValue.isNil else { return }
+            observable.update($0.newValue.wrapped)
         }.add(to: observable)
         return observable
     }

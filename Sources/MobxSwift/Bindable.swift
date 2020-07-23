@@ -38,6 +38,7 @@ extension Observeable {
     }
     
     /// 值改变时修改响应者 KeyPath
+    /// Optional -> Optional || Wrapped -> Wrapped
     /// - Parameters:
     ///   - receiver: 响应者
     ///   - receiverKeyPath: 响应者 KeyPath
@@ -49,6 +50,7 @@ extension Observeable {
     }
     
     /// 值改变时修改响应者 KeyPath
+    /// Wrapped -> Optional
     /// - Parameters:
     ///   - receiver: 响应者
     ///   - receiverKeyPath: 响应者 KeyPath
@@ -56,6 +58,22 @@ extension Observeable {
     @discardableResult public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value?>) -> Disposable where R: AnyObject {
         return bind(to: receiver) { receiver, newValue in
             receiver[keyPath: keyPath] = newValue as Value?
+        }
+    }
+}
+
+extension Observeable where Value: ObservableOptionalValue {
+    
+    /// 值改变时修改响应者 KeyPath
+    /// Optional -> Wrapped
+    /// - Parameters:
+    ///   - receiver: 响应者
+    ///   - receiverKeyPath: 响应者 KeyPath
+    /// - Returns: 可移除监听者
+    @discardableResult public func bind<R>(to receiver: R, at keyPath: ReferenceWritableKeyPath<R, Value.Wrapped>) -> Disposable where R: AnyObject {
+        return bind(to: receiver) { receiver, newValue in
+            guard !newValue.isNil else { return }
+            receiver[keyPath: keyPath] = newValue.wrapped
         }
     }
 }

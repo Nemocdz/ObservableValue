@@ -172,6 +172,45 @@ final class MobxSwiftTests: XCTestCase {
         }
         wait(for: [exp], timeout: 0.2)
     }
+    
+    func testDropNil() {
+        let success = Observeable<Bool?>(false)
+        var successValue: Bool? = nil
+        let a = success.dropNil(value: false).addObserver { change in
+            successValue = change.newValue
+        }
+        XCTAssertNil(successValue)
+        success.update(false)
+        XCTAssert(!(successValue!))
+        success.update(true)
+        XCTAssert(successValue!)
+        success.update(nil)
+        XCTAssert(successValue!)
+    }
+    
+    func testBind2() {
+        let o1 = Observeable<Int>(1)
+        let o2 = Observeable<Int?>(2)
+        let o = ObserverObject()
+        /// wrapped to wrapped
+        o1.bind(to: o, at: \.value)
+        XCTAssert(o.value == 1)
+        /// wrapped to optional
+        o1.bind(to: o, at: \.value2)
+        XCTAssert(o.value2 == 1)
+        /// optional to wrapped
+        o2.bind(to: o, at: \.value)
+        XCTAssert(o.value == 2)
+        /// optional to optional
+        o2.bind(to: o, at: \.value2)
+        XCTAssert(o.value2 == 2)
+        o1.update(3)
+        XCTAssert(o.value == 3)
+        XCTAssert(o.value2 == 3)
+        o2.update(4)
+        XCTAssert(o.value == 4)
+        XCTAssert(o.value2 == 4)
+    }
 
     static var allTests = [
         ("test1", testObservableValueChanged),
@@ -199,5 +238,8 @@ extension MobxSwiftTests {
         }
         
         var changeTime = 0
+        
+        var value: Int = 0
+        var value2: Int? = 0
     }
 }
