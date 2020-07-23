@@ -12,12 +12,12 @@ public final class Observable<Value> {
     
     private var observers: Set<Observer<Value>> = []
     private let lock = NSRecursiveLock()
-    private let dispatchKey = DispatchSpecificKey<Void>()
+    private let queueKey = DispatchSpecificKey<Void>()
     private var notifyPredicates: [NotifyPredicate] = []
     
-    private var queue: DispatchQueue = .main {
-        willSet { queue.setSpecific(key: dispatchKey, value: nil) }
-        didSet { queue.setSpecific(key: dispatchKey, value: ()) }
+    private var notifyQueue: DispatchQueue = .main {
+        willSet { notifyQueue.setSpecific(key: queueKey, value: nil) }
+        didSet { notifyQueue.setSpecific(key: queueKey, value: ()) }
     }
     
     public private(set) var value: Value {
@@ -29,11 +29,11 @@ public final class Observable<Value> {
     
     public init(_ value: Value) {
         self.value = value
-        queue.setSpecific(key: dispatchKey, value: ())
+        notifyQueue.setSpecific(key: queueKey, value: ())
     }
     
     deinit {
-        queue.setSpecific(key: dispatchKey, value: nil)
+        notifyQueue.setSpecific(key: queueKey, value: nil)
     }
     
     private func notifyAll(oldValue: Value, newValue: Value) {
@@ -73,9 +73,9 @@ extension Observable {
         
         func handle(_ change: ObservedChange<Value>) {
             guard canNotify(change) else { return }
-            let isAsync = DispatchQueue.getSpecific(key: self.dispatchKey) == nil
+            let isAsync = DispatchQueue.getSpecific(key: queueKey) == nil
             if isAsync {
-                queue.async { handler(change) }
+                notifyQueue.async { handler(change) }
             } else {
                 handler(change)
             }
@@ -109,7 +109,7 @@ extension Observable {
     /// - Parameter queue: 目标队列
     /// - Returns: self
     public func dispatch(on queue: DispatchQueue) -> Observable<Value> {
-        self.queue = queue
+        self.notifyQueue = queue
         return self
     }
 }
