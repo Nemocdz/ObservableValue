@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Nemo on 2020/7/10.
 //
@@ -22,13 +22,12 @@ public final class Observable<Value> {
     }
 }
 
-
 // MARK: - Public
-extension Observable {
-    
+
+public extension Observable {
     /// 设置新值
     /// - Parameter newValue: 新值
-    public func update(_ newValue: Value) {
+    func update(_ newValue: Value) {
         lock.lock()
         defer { lock.unlock() }
         
@@ -39,11 +38,11 @@ extension Observable {
     /// - Parameter receiveHandler: 接收改变时的处理
     /// - Returns: 可移除观察者
     @discardableResult
-    public func addObserver(receiveHandler: @escaping (ObservedChange<Value>) -> ()) -> Disposable {
+    func addObserver(receiveHandler: @escaping (ObservedChange<Value>) -> ()) -> Disposable {
         lock.lock()
         defer { lock.unlock() }
         
-        let observer = Observer<Value> (receiveHandler: receiveHandler)
+        let observer = Observer<Value>(receiveHandler: receiveHandler)
         observers.insert(observer)
         
         return Disposable(addHandler: {
@@ -57,7 +56,7 @@ extension Observable {
     }
     
     /// 移除所有观察者
-    public func removeObservers() {
+    func removeObservers() {
         lock.lock()
         defer { lock.unlock() }
         
@@ -66,6 +65,7 @@ extension Observable {
 }
 
 // MARK: - Private
+
 extension Observable {
     private func receive(change: ObservedChange<Value>) {
         observers
@@ -81,5 +81,3 @@ extension Observable {
         return observers.remove(observer) != nil
     }
 }
-
-

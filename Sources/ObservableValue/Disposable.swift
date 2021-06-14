@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by Nemo on 2020/7/16.
 //
@@ -50,5 +50,3 @@ public final class Disposable {
         return add(to: bag as AnyObject?)
     }
 }
-
-
