@@ -12,13 +12,6 @@ public final class Observable<Value> {
     
     private var observers: Set<Observer<Value>> = []
     private let lock = NSRecursiveLock()
-    private let queueKey = DispatchSpecificKey<Void>()
-    private var changePredicates: [ChangePredicate] = []
-    
-    private var receiveQueue: DispatchQueue = .main {
-        willSet { receiveQueue.setSpecific(key: queueKey, value: nil) }
-        didSet { receiveQueue.setSpecific(key: queueKey, value: ()) }
-    }
     
     public private(set) var value: Value {
         didSet { receive(change: (oldValue, value)) }
@@ -26,11 +19,6 @@ public final class Observable<Value> {
     
     public init(_ value: Value) {
         self.value = value
-        receiveQueue.setSpecific(key: queueKey, value: ())
-    }
-    
-    deinit {
-        receiveQueue.setSpecific(key: queueKey, value: nil)
     }
 }
 
@@ -47,10 +35,6 @@ extension Observable {
         defer { lock.unlock() }
         
         return observers.remove(observer) != nil
-    }
-    
-    private func canReceive(_ change: ObservedChange<Value>) -> Bool {
-        return changePredicates.filter{ $0(change) }.count == changePredicates.count
     }
 }
 
@@ -74,20 +58,7 @@ extension Observable {
         lock.lock()
         defer { lock.unlock() }
         
-        func receive(_ change: ObservedChange<Value>) {
-            guard canReceive(change) else { return }
-            let isAsync = DispatchQueue.getSpecific(key: queueKey) == nil
-            if isAsync {
-                receiveQueue.async { receiveHandler(change) }
-            } else {
-                receiveHandler(change)
-            }
-        }
-        
-        let observer = Observer<Value> (receiveHandler: {
-            receive($0)
-        })
-        
+        let observer = Observer<Value> (receiveHandler: receiveHandler)
         observers.insert(observer)
         
         return Disposable(addHandler: {
@@ -106,14 +77,6 @@ extension Observable {
         defer { lock.unlock() }
         
         observers.removeAll()
-    }
-    
-    /// 改变执行事件的队列
-    /// - Parameter queue: 目标队列
-    /// - Returns: self
-    public func dispatch(on queue: DispatchQueue) -> Observable<Value> {
-        receiveQueue = queue
-        return self
     }
 }
 
@@ -139,8 +102,12 @@ extension Observable {
     /// - Parameter predicate: 是否忽略
     /// - Returns: self
     public func drop(while predicate: @escaping (ObservedChange<Value>) -> Bool) -> Observable<Value> {
-        changePredicates.append { !predicate($0) }
-        return self
+        let observable = Observable<Value>(value)
+        addObserver {
+            guard !predicate($0) else { return }
+            observable.update($0.newValue)
+        }.add(to: observable)
+        return observable
     }
 }
 
@@ -163,6 +130,28 @@ extension Observable where Value: ObservableOptional {
         addObserver {
             guard !$0.newValue._isNil else { return }
             observable.update($0.newValue._wrapped)
+        }.add(to: observable)
+        return observable
+    }
+}
+
+
+// MARK: - Dispatch
+extension Observable {
+    
+    /// 改变执行事件的队列
+    /// - Parameter queue: 目标队列
+    /// - Returns: self
+    public func dispatch(on queue: DispatchQueue) -> Observable<Value> {
+        let key = DispatchSpecificKey<Void>()
+        queue.setSpecific(key: key, value: ())
+        let observable = Observable<Value>(value)
+        addObserver { change in
+            if DispatchQueue.getSpecific(key: key) == nil {
+                queue.async { observable.update(change.newValue) }
+            } else {
+                observable.update(change.newValue)
+            }
         }.add(to: observable)
         return observable
     }
